@@ -118,10 +118,28 @@ end
 # aa = pm_g1_diffusivity(Lx, Ly, 0.01)
 # aa = pm_g2_diffusivity(Lx, Ly, 0.01)
 # aa = weickert_diffusivity(Lx, Ly, 0.01)
-aa = charbonnier_diffusivity(Lx, Ly, 0.01)
+# aa = charbonnier_diffusivity(Lx, Ly, 0.01)
 
 
-imshow(Lsmooth)
-imshow(aa)
+# imshow(Lsmooth)
+# imshow(aa)
 
 # compute the k contrast
+
+hmax = maximum(zip(Lx[:], Ly[:])) do (lx, ly)
+    lx^2+ly^2
+end |> sqrt
+
+Nbin = 300
+
+hist = zeros(Int32, Nbin)
+
+for (lx, ly) in zip(Lx[:], Ly[:])
+    hist[convert(Int, 1+round(sqrt(lx^2 + ly^2) * (Nbin-1) / hmax))] +=1
+end
+
+imshow(sqrt.(Lx.^2+Ly.^2))
+
+using Plots
+# pyplot()
+plot(hist)
