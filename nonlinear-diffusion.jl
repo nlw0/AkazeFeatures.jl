@@ -107,14 +107,13 @@ end
 function nld_step_scalar(Ld, c, stepsize)
     Lstep = zeros(size(Ld))
 
-    xpos = (c[2:end-1, 2:end-1] + c[2:end-1, 3:end]).*(Ld[2:end-1, 3:end] - Ld[2:end-1, 2:end-1])
-    xneg = (c[2:end-1, 2:end-1] + c[2:end-1, 1:end-2]).*(Ld[2:end-1, 2:end-1] - Ld[2:end-1, 1:end-2])
-    ypos = (c[2:end-1, 2:end-1] + c[3:end, 2:end-1]).*(Ld[3:end, 2:end-1] - Ld[2:end-1, 2:end-1])
-    yneg = (c[2:end-1, 2:end-1] + c[1:end-2, 2:end-1]).*(Ld[2:end-1, 2:end-1] - Ld[1:end-2, 2:end-1])
+    dx = 0.5*stepsize*(c[1:end, 1:end-1] + c[1:end, 2:end]).*(Ld[1:end, 2:end] - Ld[1:end, 1:end-1])
+    dy = 0.5*stepsize*(c[1:end-1, 1:end] + c[2:end, 1:end]).*(Ld[2:end, 1:end] - Ld[1:end-1, 1:end])
 
-    Lstep[2:end-1, 2:end-1] = 0.5*stepsize*(xpos-xneg+ypos-yneg)
-
-    Ld .+= Lstep
+    Ld[1:end,1:end-1] .+= dx
+    Ld[1:end,2:end] .-= dx
+    Ld[1:end-1,1:end] .+= dy
+    Ld[2:end,1:end] .-= dy
 end
 
 
@@ -143,7 +142,7 @@ Lflow = pm_g2_diffusivity(Lx, Ly, 0.01)
 
 imshow(copy(Lt))
 for _ in 1:3
-    for _ in 1:22
+    for _ in 1:99
         nld_step_scalar(Lt, Lflow, 0.1)
     end
     imshow(copy(Lt))
