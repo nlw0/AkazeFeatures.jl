@@ -10,7 +10,6 @@ Lt = img
 Lsmooth = imfilter(img, Kernel.gaussian(1.0))
 
 fx,fy = Kernel.ando3()
-
 Lx = imfilter(Lsmooth, fx)
 Ly = imfilter(Lsmooth, fy)
 Lxx = imfilter(Lx, fx)
@@ -62,7 +61,12 @@ function calculate_diffusivity(func, Lx, Ly, k)
     dst
 end
 
-function compute_k_percentile(Lx, Ly; nbins = 300, perc=0.2)
+function compute_k_percentile(img, perc, gscale=1.0, nbins = 300)
+    Lsmooth = imfilter(img, Kernel.gaussian(gscale))
+    fx,fy = Kernel.ando3()
+    Lx = @view imfilter(Lsmooth, fx)[2:end-1,2:end-1]
+    Ly = @view imfilter(Lsmooth, fy)[2:end-1,2:end-1]
+
     hist = zeros(Int32, nbins)
 
     hmax = sqrt(maximum(y->sum(x->x^2, y), zip(Lx[:], Ly[:])))
@@ -86,32 +90,36 @@ function compute_k_percentile(Lx, Ly; nbins = 300, perc=0.2)
     end
 end
 
-
-# imshow(Lsmooth)
-# aa = pm_g1_diffusivity(Lx, Ly, 0.01)
-# imshow(aa)
-# aa = pm_g2_diffusivity(Lx, Ly, 0.01)
-# imshow(aa)
-# aa = weickert_diffusivity(Lx, Ly, 0.01)
-# imshow(aa)
-# aa = charbonnier_diffusivity(Lx, Ly, 0.01)
-# imshow(aa)
-
-
-# compute the k contrast
-
-# gthresh = compute_k_percentile((@view Lx[2:end-1,2:end-1]), (@view Ly[2:end-1,2:end-1]); perc=0.95)
-
-# imshow(sqrt.(Lx.^2+Ly.^2))
-# imshow(sqrt.(Lx.^2+Ly.^2) .< gthresh)
-
-# Lflow = pm_g2_diffusivity(Lx, Ly, 0.01)
-Lflow = charbonnier_diffusivity(Lx, Ly, 0.01)
-
-imshow(copy(Lt))
-for _ in 1:3
-    for _ in 1:400
-        nld_step_scalar(Lt, Lflow, 0.05)
-    end
-    imshow(copy(Lt))
+function demo_diffusivity_functions()
+    imshow(Lsmooth)
+    aa = pm_g1_diffusivity(Lx, Ly, 0.01)
+    imshow(aa)
+    aa = pm_g2_diffusivity(Lx, Ly, 0.01)
+    imshow(aa)
+    aa = weickert_diffusivity(Lx, Ly, 0.01)
+    imshow(aa)
+    aa = charbonnier_diffusivity(Lx, Ly, 0.01)
+    imshow(aa)
 end
+
+function demo_k_percentile()
+    gthresh = compute_k_percentile(img, 0.95)
+    imshow(sqrt.(Lx.^2+Ly.^2))
+    imshow(sqrt.(Lx.^2+Ly.^2) .< gthresh)
+end
+
+function demo_nld()
+    Lflow = charbonnier_diffusivity(Lx, Ly, 0.01)
+
+    imshow(copy(Lt))
+    for _ in 1:3
+        for _ in 1:100
+            nld_step_scalar(Lt, Lflow, 0.05)
+        end
+        imshow(copy(Lt))
+    end
+end
+
+# demo_diffusivity_functions()
+# demo_k_percentile()
+# demo_nld()
