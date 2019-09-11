@@ -126,20 +126,37 @@ end
 
 # compute the k contrast
 
-hmax = maximum(zip(Lx[:], Ly[:])) do (lx, ly)
-    lx^2+ly^2
-end |> sqrt
+function compute_k_percentile(Lx, Ly, nbins = 300, perc=0.2)
+    hmax = sqrt(maximum(y->sum(x->x^2, y), zip(Lx[:], Ly[:])))
 
-Nbin = 300
+    hist = zeros(Int32, nbins)
 
-hist = zeros(Int32, Nbin)
+    for (lx, ly) in zip(Lx[:], Ly[:])
+        if  (lx, ly) != (0.0, 0.0)
+            modg = sqrt(lx^2 + ly^2)
+            nbin = ceil(Int, nbins*(modg/hmax))  # limiting to nbins should not be necessary
+            hist[nbin] += 1
+        end
+    end
 
-for (lx, ly) in zip(Lx[:], Ly[:])
-    hist[convert(Int, 1+round(sqrt(lx^2 + ly^2) * (Nbin-1) / hmax))] +=1
+    nthreshold = floor(Int, sum(hist) * perc)
+
+    k = findfirst(cumsum(hist)) do hx
+        hx > nthreshold
+    end
+
+    return if k == nothing
+        0.03
+    else
+        (hmax * (k-1)) / nbins
+    end
 end
+
+gthresh = compute_k_percentile((@view Lx[2:end-1,2:end-1]), (@view Ly[2:end-1,2:end-1]))
 
 imshow(sqrt.(Lx.^2+Ly.^2))
 
 using Plots
+plotly()
 # pyplot()
 plot(hist)
