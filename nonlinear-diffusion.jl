@@ -1,9 +1,12 @@
-using ImageFiltering
-using TestImages
-using ImageView
+using ImageFiltering: Kernel, imfilter
+using TestImages: testimage
+using ImageView: imshow
+using Images: rawview, channelview
 
-img = testimage("pirate")
 
+img = rawview(channelview(testimage("pirate"))) / 255
+
+Lt = img
 Lsmooth = imfilter(img, Kernel.gaussian(1.0))
 
 fx,fy = Kernel.ando3()
@@ -45,86 +48,37 @@ Lyy = imfilter(Ly, fy)
 
 
 
-
-
-
-
-function pm_g1_diffusivity(Lx, Ly, k)
+function calculate_diffusivity(func, Lx, Ly, k)
     dst = zeros(size(Lx))
     invk2 = 1.0 / (k * k)
-    sz = size(Lx)
+    nrow, ncol = size(Lx)
     @inbounds begin
-        @simd for y in 1:sz[1]
-            @simd for x in 1:sz[2]
-                lx,ly = Lx[y,x], Ly[y,x]
-
-                dst[y,x] = (-invk2*(lx*lx + ly*ly))
+        @simd for j in 1:nrow
+            @simd for k in 1:ncol
+                lx,ly = Lx[j,k],Ly[j,k]
+                dL = (lx*lx+ly*ly) * invk2
+                dst[j,k] = func(dL)
             end
         end
     end
     dst
 end
 
-function pm_g2_diffusivity(Lx, Ly, k)
-    dst = zeros(size(Lx))
-    invk2 = 1.0 / (k * k)
-    sz = size(Lx)
-    @inbounds begin
-        @simd for y in 1:sz[1]
-            @simd for x in 1:sz[2]
-                lx, ly = Lx[y,x], Ly[y,x]
-
-                dst[y,x] = 1.0 / (1.0+invk2*(lx*lx + ly*ly));
-            end
-        end
-    end
-    dst
+pm_g1_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+    -dL
 end
 
-function weickert_diffusivity(Lx, Ly, k)
-    dst = zeros(size(Lx))
-    invk2 = 1.0 / (k * k)
-    sz = size(Lx)
-    @inbounds begin
-        @simd for y in 1:sz[1]
-            @simd for x in 1:sz[2]
-                lx,ly = Lx[y,x], Ly[y,x]
-
-                dL = invk2 * (lx*lx + ly*ly)
-                dst[y,x] = 1.0 - exp(-3.315/(dL*dL*dL*dL))
-            end
-        end
-    end
-    dst
+pm_g2_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+    1.0 / (1.0 + dL)
 end
 
-function charbonnier_diffusivity(Lx, Ly, k)
-    dst = zeros(size(Lx))
-    invk2 = 1.0 / (k * k)
-    sz = size(Lx)
-    @inbounds begin
-        @simd for y in 1:sz[1]
-            @simd for x in 1:sz[2]
-                lx,ly = Lx[y,x], Ly[y,x]
-
-                den = sqrt(1.0+invk2*(lx*lx + ly*ly))
-                dst[y,x] = 1.0 / den
-            end
-        end
-    end
-    dst
+weickert_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+    1.0 - exp(-3.315/(dL*dL*dL*dL))
 end
 
-# aa = pm_g1_diffusivity(Lx, Ly, 0.01)
-# aa = pm_g2_diffusivity(Lx, Ly, 0.01)
-# aa = weickert_diffusivity(Lx, Ly, 0.01)
-# aa = charbonnier_diffusivity(Lx, Ly, 0.01)
-
-
-# imshow(Lsmooth)
-# imshow(aa)
-
-# compute the k contrast
+charbonnier_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+    1.0 / sqrt(1.0 + dL)
+end
 
 function compute_k_percentile(Lx, Ly; nbins = 300, perc=0.2)
     hist = zeros(Int32, nbins)
@@ -150,12 +104,47 @@ function compute_k_percentile(Lx, Ly; nbins = 300, perc=0.2)
     end
 end
 
-gthresh = compute_k_percentile((@view Lx[2:end-1,2:end-1]), (@view Ly[2:end-1,2:end-1]); perc=0.5)
+function nld_step_scalar(Ld, c, stepsize)
+    Lstep = zeros(size(Ld))
+
+    xpos = (c[2:end-1, 2:end-1] + c[2:end-1, 3:end]).*(Ld[2:end-1, 3:end] - Ld[2:end-1, 2:end-1])
+    xneg = (c[2:end-1, 2:end-1] + c[2:end-1, 1:end-2]).*(Ld[2:end-1, 2:end-1] - Ld[2:end-1, 1:end-2])
+    ypos = (c[2:end-1, 2:end-1] + c[3:end, 2:end-1]).*(Ld[3:end, 2:end-1] - Ld[2:end-1, 2:end-1])
+    yneg = (c[2:end-1, 2:end-1] + c[1:end-2, 2:end-1]).*(Ld[2:end-1, 2:end-1] - Ld[1:end-2, 2:end-1])
+
+    Lstep[2:end-1, 2:end-1] = 0.5*stepsize*(xpos-xneg+ypos-yneg)
+
+    Ld .+= Lstep
+end
+
+
+
+
+
+# imshow(Lsmooth)
+# aa = pm_g1_diffusivity(Lx, Ly, 0.01)
+# imshow(aa)
+# aa = pm_g2_diffusivity(Lx, Ly, 0.01)
+# imshow(aa)
+# aa = weickert_diffusivity(Lx, Ly, 0.01)
+# imshow(aa)
+# aa = charbonnier_diffusivity(Lx, Ly, 0.01)
+# imshow(aa)
+
+
+# compute the k contrast
+
+gthresh = compute_k_percentile((@view Lx[2:end-1,2:end-1]), (@view Ly[2:end-1,2:end-1]); perc=0.95)
 
 # imshow(sqrt.(Lx.^2+Ly.^2))
-imshow(sqrt.(Lx.^2+Ly.^2) .< gthresh)
+# imshow(sqrt.(Lx.^2+Ly.^2) .< gthresh)
 
-using Plots
-plotly()
-# pyplot()
-plot(hist)
+Lflow = pm_g2_diffusivity(Lx, Ly, 0.01)
+
+imshow(copy(Lt))
+for _ in 1:3
+    for _ in 1:22
+        nld_step_scalar(Lt, Lflow, 0.1)
+    end
+    imshow(copy(Lt))
+end
