@@ -66,7 +66,10 @@ function compute_k_percentile(img, perc, gscale=1.0, nbins = 300)
     fx,fy = Kernel.ando3()
     Lx = @view imfilter(Lsmooth, fx)[2:end-1,2:end-1]
     Ly = @view imfilter(Lsmooth, fy)[2:end-1,2:end-1]
+    compute_k_percentile′(Lx, Ly, perc, nbins)
+end
 
+function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
     hist = zeros(Int32, nbins)
 
     hmax = sqrt(maximum(y->sum(x->x^2, y), zip(Lx[:], Ly[:])))
