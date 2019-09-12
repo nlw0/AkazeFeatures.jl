@@ -79,17 +79,16 @@ end
 ################################################################
 ### AKAZE nonlinear diffusion filtering evolution
 @with_kw struct TEvolution{T}
-
-    Lx::T; Ly::T                ###< First order spatial derivatives
-    Lxx::T; Lxy::T; Lyy::T      ###< Second order spatial derivatives
-    Lflow::T                    ###< Diffusivity image
-    Lt::T                       ###< Evolution image
-    Lsmooth::T                  ###< Smoothed image
-    Lstep::T                    ###< Evolution step update
-    Ldet::T                     ###< Detector response
-    etime::Float32=0f0          ###< Evolution time
-    esigma::Float32=0f0         ###< Evolution sigma. For linear diffusion t = sigma^2 / 2
-    octave::UInt32=0x0          ###< Image octave
-    sublevel::UInt32=0x0        ###< Image sublevel in each octave
-    sigma_size::UInt32=0x0      ###< Integer sigma. For computing the feature detector responses
+    Lx::T; Ly::T            ###< First order spatial derivatives
+    Lxx::T; Lxy::T; Lyy::T  ###< Second order spatial derivatives
+    Lflow::T                ###< Diffusivity image
+    Lt::T                   ###< Evolution image
+    Lsmooth::T              ###< Smoothed image
+    Lstep::T                ###< Evolution step update
+    Ldet::T                 ###< Detector response
+    etime::Float32=0f0      ###< Evolution time
+    esigma::Float32=0f0     ###< Evolution sigma. For linear diffusion t = sigma^2 / 2
+    octave::UInt32=0x0      ###< Image octave
+    sublevel::UInt32=0x0    ###< Image sublevel in each octave
+    sigma_size::UInt32=0x0  ###< Integer sigma. For computing the feature detector responses
 end
