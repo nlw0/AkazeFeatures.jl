@@ -29,6 +29,8 @@ end
 function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
                           reordering::Bool)
 
+    @show n, scale, tau_max, reordering
+
     if (n <= 0)
         return 0, nothing
     end
@@ -70,9 +72,10 @@ function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
         while l < n
             index = ((k+1)*kappa) % prime - 1
             while (index >= n)
-                index = ((k+1)*kappa) % prime - 1
                 k+=1
+                index = ((k+1)*kappa) % prime - 1
             end
+            @show l, k, index
 
             tau[l+1] = tauh[index+1]
 

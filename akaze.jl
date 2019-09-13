@@ -32,21 +32,25 @@ struct AKAZE
             level_height = options.img_height >> i
 
             map(0:options.nsublevels-1) do j
-                esigma = options.soffset * 2f0^(Float32(j)/Float32(options.nsublevels)) + i
+                esigma = options.soffset * 2.0^(j/options.nsublevels + i)
+                zz() = zeros(level_height, level_width)
 
                 TEvolution(
-                    [zeros(level_height, level_width) for _ in 1:10]...,
-
-                    0.5f0*(esigma*esigma),
-                    esigma,
-                    round(Int, esigma),
-                    i,
-                    j
-                    # esigma = esigma,
-                    # sigma_size = round(Int, esigma),
-                    # etime = 0.5f0*(esigma*esigma),
-                    # octave = i,
-                    # sublevel = j
+                    Lx = zz(),
+                    Ly = zz(),
+                    Lxx = zz(),
+                    Lxy = zz(),
+                    Lyy = zz(),
+                    Lflow = zz(),
+                    Lt = zz(),
+                    Lsmooth = zz(),
+                    Lstep = zz(),
+                    Ldet = zz(),
+                    esigma = esigma,
+                    sigma_size = round(Int, esigma),
+                    etime = 0.5f0*(esigma*esigma),
+                    octave = i,
+                    sublevel = j
                 )
             end
         end |> Iterators.flatten |> collect
@@ -63,9 +67,9 @@ struct AKAZE
             fed_tau_by_process_time(Float64(ttime), 1, 0.25, reordering)
         end
         println(ntau)
-        nsteps, tsteps = zip(ntau...)
+        nsteps, tsteps = [[x...] for x in zip(ntau...)]
 
-        new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0))
+        new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0,0))
     end
 end
 
