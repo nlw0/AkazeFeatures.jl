@@ -27,37 +27,17 @@ struct AKAZE
             mylog2(options.img_height÷40)
         )
 
-        evolution = map(0:octavemax) do i
-            level_width = options.img_width >> i
-            level_height = options.img_height >> i
+        evolution = map(Iterators.product(0:options.nsublevels-1, 0:octavemax)) do (j,i)
+            construct_tevolution(
+                image_width = options.img_width >> i,
+                image_height = options.img_height >> i,
+                esigma = options.soffset * 2.0^(j/options.nsublevels + i),
+                octave = i,
+                sublevel = j
+            )
+        end
 
-            map(0:options.nsublevels-1) do j
-                esigma = options.soffset * 2.0^(j/options.nsublevels + i)
-                zz() = zeros(level_height, level_width)
-
-                TEvolution(
-                    Lx = zz(),
-                    Ly = zz(),
-                    Lxx = zz(),
-                    Lxy = zz(),
-                    Lyy = zz(),
-                    Lflow = zz(),
-                    Lt = zz(),
-                    Lsmooth = zz(),
-                    Lstep = zz(),
-                    Ldet = zz(),
-                    esigma = esigma,
-                    sigma_size = round(Int, esigma),
-                    etime = 0.5f0*(esigma*esigma),
-                    octave = i,
-                    sublevel = j
-                )
-            end
-        end |> Iterators.flatten |> collect
-
-        println([x.etime for x in evolution])
-
-        ncycles = length(evolution)-1
+        ncycles = length(evolution) - 1
         reordering = true
 
         ## Allocate memory for the number of cycles and time steps

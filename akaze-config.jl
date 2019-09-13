@@ -91,4 +91,35 @@ end
     octave::UInt32=0x0      ###< Image octave
     sublevel::UInt32=0x0    ###< Image sublevel in each octave
     sigma_size::UInt32=0x0  ###< Integer sigma. For computing the feature detector responses
+
 end
+
+construct_tevolution(;image_width, image_height, esigma, octave, sublevel) = TEvolution(
+    Lx = zeros(image_height, image_width),
+    Ly = zeros(image_height, image_width),
+    Lxx = zeros(image_height, image_width),
+    Lxy = zeros(image_height, image_width),
+    Lyy = zeros(image_height, image_width),
+    Lflow = zeros(image_height, image_width),
+    Lt = zeros(image_height, image_width),
+    Lsmooth = zeros(image_height, image_width),
+    Lstep = zeros(image_height, image_width),
+    Ldet = zeros(image_height, image_width),
+    esigma=esigma,
+    sigma_size = round(Int, esigma),
+    etime = 0.5f0*(esigma*esigma),
+    octave=octave,
+    sublevel=sublevel
+)
+
+        # evolution = map(Iterators.product(0:octavemax, 0:options.nsublevels-1)) do (i,j)
+        #     construct_tevolution(
+        #         image_width = options.img_width >> i,
+        #         image_height = options.img_height >> i,
+        #         esigma = options.soffset * 2.0^(j/options.nsublevels + i),
+        #         octave = i,
+        #         sublevel = j
+        #     )
+        # end
+
+# Float32[1.2800001, 1.8101934, 2.5600002, 3.6203868, 5.1200004, 7.2407737, 10.240001, 14.481547, 20.480001, 28.963095, 40.960003, 57.92619, 81.920006, 115.85238, 163.84001, 231.70476]
