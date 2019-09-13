@@ -1,4 +1,4 @@
-using Primes: isprime
+using Primes: nextprime
 
 ################################################################
 function fed_tau_by_process_time(T::Float64, M::Int64, tau_max::Float64,
@@ -15,7 +15,10 @@ function fed_tau_by_cycle_time(t::Float64, tau_max::Float64,
     scale = 0.0    ## Ratio of t we search to maximal t
 
     ## Compute necessary number of time steps
-    n = ceil(Int64, sqrt(3.0*t/tau_max+0.25)-0.5-1.0e-8.0)
+    # n = ceil(Int64, sqrt(3.0*t/tau_max+0.25)-0.5-1.0e-8)
+
+    n = floor(Int64, ceil(sqrt(3.0 * t / tau_max + 0.25) - 0.5 - 1.0e-8)+ 0.5)
+
     scale = 3.0*t/(tau_max*Float64(n*(n+1)))
 
     ## Call internal FED time step creation routine
@@ -24,7 +27,7 @@ end
 
 ################################################################
 function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
-                          reordering::Bool) ::Int64
+                          reordering::Bool)
 
     if (n <= 0)
         return 0, nothing
@@ -43,7 +46,7 @@ function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
 
     ## Set up originally ordered tau vector
     for k in 1:n
-        h = cos(M_PI * (2.0f * k - 1.0) * c)
+        h = cos(pi * (2.0 * k - 1.0) * c)
 
         if reordering
             tauh[k] = d / (h * h);
@@ -68,7 +71,7 @@ function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
             index = ((k+1)*kappa) % prime - 1
             while (index >= n)
                 index = ((k+1)*kappa) % prime - 1
-                k++
+                k+=1
             end
 
             tau[l+1] = tauh[index+1]

@@ -22,37 +22,47 @@ struct AKAZE
 
         ## Smallest possible octave and allow one scale if the image is small
         octavemax = min(
-            options_.omax,
-            mylog2(options_.img_width÷80),
-            mylog2(options_.img_height÷40)
+            options.omax,
+            mylog2(options.img_width÷80),
+            mylog2(options.img_height÷40)
         )
 
         evolution = map(0:octavemax) do i
-            level_width = options_.img_width >> i
-            level_height = options_.img_height >> i
+            level_width = options.img_width >> i
+            level_height = options.img_height >> i
 
-            map(0:options_.nsublevels-1) do j
-                esigma = options_.soffset * 2f0^(Float32(j)/Float32(options_.nsublevels)) + i)
+            map(0:options.nsublevels-1) do j
+                esigma = options.soffset * 2f0^(Float32(j)/Float32(options.nsublevels)) + i
 
                 TEvolution(
-                [zeros(level_height, level_width) for _ in 1:9]...,
-                esigma = esigma,
-                sigma_size = round(Int, esigma),
-                etime = 0.5f0*(esigma*esigma),
-                octave = i,
-                sublevel = j
+                    [zeros(level_height, level_width) for _ in 1:10]...,
+
+                    0.5f0*(esigma*esigma),
+                    esigma,
+                    round(Int, esigma),
+                    i,
+                    j
+                    # esigma = esigma,
+                    # sigma_size = round(Int, esigma),
+                    # etime = 0.5f0*(esigma*esigma),
+                    # octave = i,
+                    # sublevel = j
                 )
             end
         end |> Iterators.flatten |> collect
 
-        ncycles = evolution_.size()-1
+        println([x.etime for x in evolution])
+
+        ncycles = length(evolution)-1
         reordering = true
 
         ## Allocate memory for the number of cycles and time steps
-        ntau = map(2:evolution_.size()) do i
-            ttime = evolution[i].etime - evolution[i-1].etime
-            fed_tau_by_process_time(ttime, 1, 0.25, reordering)
+        ntau = map(2:length(evolution)) do i
+            @show ttime = evolution[i].etime - evolution[i-1].etime
+
+            fed_tau_by_process_time(Float64(ttime), 1, 0.25, reordering)
         end
+        println(ntau)
         nsteps, tsteps = zip(ntau...)
 
         new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0))
@@ -62,7 +72,7 @@ end
 mylog2(i::Int) = if i==1 0 else 1+mylog2(i>>1) end
 
 
-
+#=
 /* ************************************************************************* */
 int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
@@ -134,3 +144,4 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
       return 0;
 
       }
+=#
