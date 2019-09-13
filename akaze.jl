@@ -1,7 +1,3 @@
-
-mylog2(i::Int) = if i==1 0 else 1+mylog2(i>>1) end
-
-
 ################################################################
 struct AKAZE
 
@@ -53,27 +49,17 @@ struct AKAZE
         reordering = true
 
         ## Allocate memory for the number of cycles and time steps
-        for i in 2:evolution_.size()
-            naux = 0
-            tau = Float32[]
+        ntau = map(2:evolution_.size()) do i
             ttime = evolution[i].etime - evolution[i-1].etime
-            naux = fed_tau_by_process_time(ttime, 1, 0.25, reordering, tau)
-
-            append!(nsteps, naux)
-            append!(tsteps, tau)
+            fed_tau_by_process_time(ttime, 1, 0.25, reordering)
         end
+        nsteps, tsteps = zip(ntau...)
 
         new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0))
     end
 end
 
-
-
-
-
-
-
-
+mylog2(i::Int) = if i==1 0 else 1+mylog2(i>>1) end
 
 
 

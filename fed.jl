@@ -26,10 +26,6 @@ end
 function fed_tau_internal(n::Int64,  scale::Float64, tau_max::Float64,
                           reordering::Bool) ::Int64
 
-    c = 0.0
-    d = 0.0             ## Time savers
-    tauh = Float64[]    ## Helper vector for unsorted taus
-
     if (n <= 0)
         return 0, nothing
     end
