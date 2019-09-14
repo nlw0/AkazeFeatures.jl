@@ -1,5 +1,6 @@
 using ImageTransformations: imresize
 
+
 ################################################################
 mutable struct AKAZE
 
@@ -54,7 +55,9 @@ mutable struct AKAZE
     end
 end
 
+
 mylog2(i::Int, acc=0) = if i==1 acc else mylog2(i>>1,acc+1) end
+
 
 ################################################################
 function Create_Nonlinear_Scale_Space(akaze, img)
@@ -64,7 +67,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    akaze.evolution_[1].Lt .= imfilter(img, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
 
     ## First compute the kcontrast factor
@@ -77,18 +80,17 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     ## Now generate the rest of evolution levels
     for i in 2:length(akaze.evolution_)
         if akaze.evolution_[i].octave > akaze.evolution_[i-1].octave
-            # akaze.evolution_[i].Lt = halfsample_image(akaze.evolution_[i-1].Lt)
-            akaze.evolution_[i].Lt = imresize(akaze.evolution_[i-1].Lt, size(akaze.evolution_[i-1].Lt).÷2)
+            akaze.evolution_[i].Lt = halfsample_image(akaze.evolution_[i-1].Lt)
             akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
         else
             akaze.evolution_[i].Lt .= akaze.evolution_[i-1].Lt
         end
 
-        akaze.evolution_[i].Lsmooth .= imfilter(akaze.evolution_[i].Lt, Kernel.gaussian(1.0))
+        imfilter!(akaze.evolution_[i].Lsmooth, akaze.evolution_[i].Lt, Kernel.gaussian(1.0))
 
         ## Compute the Gaussian derivatives Lx and Ly
-        akaze.evolution_[i].Lx .= imfilter(akaze.evolution_[i].Lsmooth, fx)
-        akaze.evolution_[i].Ly .= imfilter(akaze.evolution_[i].Lsmooth, fy)
+        imfilter!(akaze.evolution_[i].Lx, akaze.evolution_[i].Lsmooth, fx)
+        imfilter!(akaze.evolution_[i].Ly, akaze.evolution_[i].Lsmooth, fy)
 
         calculate_diffusivity = select_diffusivity(akaze.options_.diffusivity)
 
@@ -107,3 +109,23 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t2 = time_ns()
     akaze.timing_.scale = t2-t1
 end
+
+
+halfsample_image(img) = imresize(img, size(img).÷2)
+
+
+#=
+################################################################
+function Feature_Detection(akaze)#::kpoints
+
+    t1 = time_ns()
+
+    vector<cv::KeyPoint>().swap(kpts)
+    Compute_Determinant_Hessian_Response()
+    Find_Scale_Space_Extrema(kpts)
+    Do_Subpixel_Refinement(kpts)
+
+    t2 = time_ns()
+    akaze.timing_.detector = t2-t1
+end
+=#
