@@ -3,18 +3,6 @@ using ImageView: imshow
 using Images: rawview, channelview
 
 
-img = rawview(channelview(testimage("pirate"))) / 255
-
-Lt = img
-Lsmooth = imfilter(img, Kernel.gaussian(1.0))
-
-fx,fy = Kernel.ando3()
-Lx = imfilter(Lsmooth, fx)
-Ly = imfilter(Lsmooth, fy)
-Lxx = imfilter(Lx, fx)
-Lxy = imfilter(Lx, fy)
-Lyy = imfilter(Ly, fy)
-
 
 function nld_step_scalar(Ld, c, stepsize)
     dx = 0.5*stepsize*(c[1:end, 1:end-1] + c[1:end, 2:end]).*(Ld[1:end, 2:end] - Ld[1:end, 1:end-1])
