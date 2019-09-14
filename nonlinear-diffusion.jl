@@ -1,5 +1,4 @@
 using ImageFiltering: Kernel, imfilter
-using TestImages: testimage
 using ImageView: imshow
 using Images: rawview, channelview
 
@@ -18,8 +17,6 @@ Lyy = imfilter(Ly, fy)
 
 
 function nld_step_scalar(Ld, c, stepsize)
-    Lstep = zeros(size(Ld))
-
     dx = 0.5*stepsize*(c[1:end, 1:end-1] + c[1:end, 2:end]).*(Ld[1:end, 2:end] - Ld[1:end, 1:end-1])
     dy = 0.5*stepsize*(c[1:end-1, 1:end] + c[2:end, 1:end]).*(Ld[2:end, 1:end] - Ld[1:end-1, 1:end])
 
@@ -29,23 +26,23 @@ function nld_step_scalar(Ld, c, stepsize)
     Ld[2:end,1:end] .-= dy
 end
 
-pm_g1_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+pm_g1_diffusivity(Lx, Ly, k) = calculate_diffusivity′(Lx, Ly, k) do dL
     -dL
 end
 
-pm_g2_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+pm_g2_diffusivity(Lx, Ly, k) = calculate_diffusivity′(Lx, Ly, k) do dL
     1.0 / (1.0 + dL)
 end
 
-weickert_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+weickert_diffusivity(Lx, Ly, k) = calculate_diffusivity′(Lx, Ly, k) do dL
     1.0 - exp(-3.315/(dL*dL*dL*dL))
 end
 
-charbonnier_diffusivity(Lx, Ly, k) = calculate_diffusivity(Lx, Ly, k) do dL
+charbonnier_diffusivity(Lx, Ly, k) = calculate_diffusivity′(Lx, Ly, k) do dL
     1.0 / sqrt(1.0 + dL)
 end
 
-function calculate_diffusivity(func, Lx, Ly, k)
+function calculate_diffusivity′(func, Lx, Ly, k)
     dst = zeros(size(Lx))
     invk2 = 1.0 / (k * k)
     nrow, ncol = size(Lx)
@@ -61,7 +58,7 @@ function calculate_diffusivity(func, Lx, Ly, k)
     dst
 end
 
-function compute_k_percentile(img, perc, gscale=1.0, nbins = 300)
+function compute_k_percentile(img, perc; gscale=1.0, nbins = 300)
     Lsmooth = imfilter(img, Kernel.gaussian(gscale))
     fx,fy = Kernel.ando3()
     Lx = @view imfilter(Lsmooth, fx)[2:end-1,2:end-1]

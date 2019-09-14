@@ -1,5 +1,7 @@
+using ImageTransformations: imresize
+
 ################################################################
-struct AKAZE
+mutable struct AKAZE
 
     options_::AKAZEOptions                      ###< Configuration options for AKAZE
     evolution_::Array{TEvolution}               ###< Vector of nonlinear diffusion evolution
@@ -42,90 +44,66 @@ struct AKAZE
 
         ## Allocate memory for the number of cycles and time steps
         ntau = map(2:length(evolution)) do i
-            @show ttime = evolution[i].etime - evolution[i-1].etime
+            ttime = evolution[i].etime - evolution[i-1].etime
 
             fed_tau_by_process_time(Float64(ttime), 1, 0.25, reordering)
         end
-        println(ntau)
         nsteps, tsteps = [[x...] for x in zip(ntau...)]
 
         new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0,0))
     end
 end
 
-mylog2(i::Int) = if i==1 0 else 1+mylog2(i>>1) end
+mylog2(i::Int, acc=0) = if i==1 acc else mylog2(i>>1,acc+1) end
 
+################################################################
+function Create_Nonlinear_Scale_Space(akaze, img)
 
-#=
-/* ************************************************************************* */
-int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
+    fx,fy = Kernel.ando3()
 
-  double t1 = 0.0, t2 = 0.0;
+    t1 = time_ns()
 
-  if (evolution_.size() == 0) {
-    cerr << "Error generating the nonlinear scale space!!" << endl;
-    cerr << "Firstly you need to call AKAZE::Allocate_Memory_Evolution()" << endl;
-    return -1;
-  }
+    ## Copy the original image to the first level of the evolution
+    akaze.evolution_[1].Lt .= imfilter(img, Kernel.gaussian(akaze.options_.soffset))
+    akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
 
-  t1 = cv::getTickCount();
+    ## First compute the kcontrast factor
+    akaze.options_.kcontrast = compute_k_percentile(img, akaze.options_.kcontrast_percentile,
+                                                    gscale=1.0, nbins=akaze.options_.kcontrast_nbins)
 
-  // Copy the original image to the first level of the evolution
-  img.copyTo(evolution_[0].Lt);
-  gaussian_2D_convolution(evolution_[0].Lt, evolution_[0].Lt, 0, 0, options_.soffset);
-  evolution_[0].Lt.copyTo(evolution_[0].Lsmooth);
+    t2 = time_ns();
+    akaze.timing_.kcontrast = t2-t1
 
-  // First compute the kcontrast factor
-  options_.kcontrast = compute_k_percentile(img, options_.kcontrast_percentile,
-                                            1.0, options_.kcontrast_nbins, 0, 0);
+    ## Now generate the rest of evolution levels
+    for i in 2:length(akaze.evolution_)
+        if akaze.evolution_[i].octave > akaze.evolution_[i-1].octave
+            # akaze.evolution_[i].Lt = halfsample_image(akaze.evolution_[i-1].Lt)
+            akaze.evolution_[i].Lt = imresize(akaze.evolution_[i-1].Lt, size(akaze.evolution_[i-1].Lt).÷2)
+            akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
+        else
+            akaze.evolution_[i].Lt .= akaze.evolution_[i-1].Lt
+        end
 
-  t2 = cv::getTickCount();
-  timing_.kcontrast = 1000.0*(t2-t1) / cv::getTickFrequency();
+        akaze.evolution_[i].Lsmooth .= imfilter(akaze.evolution_[i].Lt, Kernel.gaussian(1.0))
 
-  // Now generate the rest of evolution levels
-  for (size_t i = 1; i < evolution_.size(); i++) {
+        ## Compute the Gaussian derivatives Lx and Ly
+        akaze.evolution_[i].Lx .= imfilter(akaze.evolution_[i].Lsmooth, fx)
+        akaze.evolution_[i].Ly .= imfilter(akaze.evolution_[i].Lsmooth, fy)
 
-    if (evolution_[i].octave > evolution_[i-1].octave) {
-      halfsample_image(evolution_[i-1].Lt, evolution_[i].Lt);
-      options_.kcontrast = options_.kcontrast*0.75;
-    }
-    else {
-      evolution_[i-1].Lt.copyTo(evolution_[i].Lt);
-    }
+        calculate_diffusivity = select_diffusivity(akaze.options_.diffusivity)
 
-    gaussian_2D_convolution(evolution_[i].Lt, evolution_[i].Lsmooth, 0, 0, 1.0);
+        akaze.evolution_[i].Lflow .= calculate_diffusivity(
+            akaze.evolution_[i].Lx,
+            akaze.evolution_[i].Ly,
+            akaze.options_.kcontrast
+        )
 
-    // Compute the Gaussian derivatives Lx and Ly
-    image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Lx, 1, 0);
-    image_derivatives_scharr(evolution_[i].Lsmooth, evolution_[i].Ly, 0, 1);
+        ## Perform FED n inner steps
+        for j in 1:akaze.nsteps_[i-1]
+            nld_step_scalar(akaze.evolution_[i].Lt, akaze.evolution_[i].Lflow, akaze.tsteps_[i-1][j])
+        end
+    end
 
-    // Compute the conductivity equation
-    switch (options_.diffusivity) {
-      case PM_G1:
-        pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case PM_G2:
-        pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case WEICKERT:
-        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      case CHARBONNIER:
-        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
-      break;
-      default:
-        cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
-    }
-
-    // Perform FED n inner steps
-    for (int j = 0; j < nsteps_[i-1]; j++)
-      nld_step_scalar(evolution_[i].Lt, evolution_[i].Lflow, evolution_[i].Lstep, tsteps_[i-1][j]);
-  }
-
-  t2 = cv::getTickCount();
-  timing_.scale = 1000.0*(t2-t1) / cv::getTickFrequency();
-
-      return 0;
-
-      }
-=#
+    t2 = time_ns()
+    akaze.timing_.scale = t2-t1
+end

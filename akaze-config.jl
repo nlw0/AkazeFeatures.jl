@@ -33,6 +33,17 @@ end
   CHARBONNIER = 3
 end
 
+select_diffusivity(diffusivity::DIFFUSIVITY_TYPE) = if diffusivity == PM_G1
+    pm_g1_diffusivity
+elseif diffusivity == PM_G2
+    pm_g2_diffusivity
+elseif diffusivity == WEICKERT
+    weickert_diffusivity
+elseif diffusivity == CHARBONNIER
+    charbonnier_diffusivity
+end
+
+
 ################################################################
 ### AKAZE Timing structure
 mutable struct AKAZETiming
@@ -47,7 +58,7 @@ end
 
 ################################################################
 ### AKAZE configuration options structure
-@with_kw struct AKAZEOptions
+@with_kw mutable struct AKAZEOptions
     omin::Int32                         ###< Initial octave level (-1 means that the size of the input image is duplicated)
     omax::Int32=4                       ###< Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
     nsublevels::Int32=4                 ###< Default number of sublevels per scale level
@@ -78,7 +89,7 @@ end
 
 ################################################################
 ### AKAZE nonlinear diffusion filtering evolution
-@with_kw struct TEvolution{T}
+@with_kw mutable struct TEvolution{T}
     Lx::T; Ly::T            ###< First order spatial derivatives
     Lxx::T; Lxy::T; Lyy::T  ###< Second order spatial derivatives
     Lflow::T                ###< Diffusivity image
