@@ -49,8 +49,6 @@ end
 function compute_k_percentile(img, perc; gscale=1.0, nbins = 300)
     Lsmooth = imfilter(img, Kernel.gaussian(gscale))
     fx,fy = Kernel.ando3()
-    fx .*= 1.0940889041865054
-    fy .*= 1.0940889041865054
 
     Lx = @view imfilter(Lsmooth, fx)[2:end-1,2:end-1]
     Ly = @view imfilter(Lsmooth, fy)[2:end-1,2:end-1]

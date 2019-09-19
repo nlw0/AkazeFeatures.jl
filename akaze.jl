@@ -3,9 +3,6 @@ using ImageTransformations: imresize
 
 fy, fx = Kernel.ando3()
 
-fx .*= 1.0940889041865054
-fy .*= 1.0940889041865054
-
 ################################################################
 mutable struct AKAZE
 
@@ -231,9 +228,6 @@ function Find_Scale_Space_Extrema(akaze)
                 value > ev.Ldet[j,k-1] && value > ev.Ldet[j,k+1] &&
                 value > ev.Ldet[j-1,k-1] && value > ev.Ldet[j-1,k] && value > ev.Ldet[j-1,k+1] &&
                 value > ev.Ldet[j+1,k-1] && value > ev.Ldet[j+1,k] && value > ev.Ldet[j+1,k+1]
-
-                print("$i $j $k $value ")
-                # print("$i $j $k ")
 
                 is_extremum = true
                 point.response = abs(value)

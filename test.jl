@@ -53,6 +53,6 @@ end
 # save("pirate.png", testimage(imagename))
 
 # plot(size=(800,800))
-plot(RGB.(testimage(imagename)))
-plot!(pp[:,1], pp[:,2], m=5, l=0, color=:red, ratio=1, shape=:x)
-plot!(orig[1,:], orig[2,:], m=5, l=0, color=:yellow, ratio=1, shape=:+)
+plot(RGB.(testimage(imagename)), xticks=:native, yticks=:native, yflip=false)
+plot!(pp[:,1], pp[:,2], m=5, l=0, color=:red, ratio=1, shape=:x, label="this")
+plot!(orig[1,:], orig[2,:], m=5, l=0, color=:yellow, ratio=1, shape=:+, label="original")
