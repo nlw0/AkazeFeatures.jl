@@ -1,8 +1,10 @@
 using ImageTransformations: imresize
 
 
-fx, fy = Kernel.ando3()
+fy, fx = Kernel.ando3()
 
+fx .*= 1.0940889041865054
+fy .*= 1.0940889041865054
 
 ################################################################
 mutable struct AKAZE
@@ -86,6 +88,10 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     ## Copy the original image to the first level of the evolution
     imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
+    imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
+    imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Lsmooth, fy)
+    imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Ly, Kernel.gaussian(akaze.options_.soffset))
 
     ## First compute the kcontrast factor
     akaze.options_.kcontrast = compute_k_percentile(img, akaze.options_.kcontrast_percentile,
@@ -215,7 +221,6 @@ function Find_Scale_Space_Extrema(akaze)
 
         for (j, k) in Iterators.product(2:rows-1,2:cols-1)
 
-
             is_extremum = false
             is_repeated = false
             is_out = false
@@ -226,6 +231,9 @@ function Find_Scale_Space_Extrema(akaze)
                 value > ev.Ldet[j,k-1] && value > ev.Ldet[j,k+1] &&
                 value > ev.Ldet[j-1,k-1] && value > ev.Ldet[j-1,k] && value > ev.Ldet[j-1,k+1] &&
                 value > ev.Ldet[j+1,k-1] && value > ev.Ldet[j+1,k] && value > ev.Ldet[j+1,k+1]
+
+                print("$i $j $k $value ")
+                # print("$i $j $k ")
 
                 is_extremum = true
                 point.response = abs(value)

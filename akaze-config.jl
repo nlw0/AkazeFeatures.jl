@@ -69,7 +69,7 @@ end
     sderivatives::Float32=1f0           ###< Smoothing factor for the derivatives
     diffusivity::DIFFUSIVITY_TYPE=PM_G2 ###< Diffusivity type
 
-    dthreshold::Float32=1f-3            ###< Detector response threshold to accept point
+    dthreshold::Float32=3f-5            ###< Detector response threshold to accept point
     min_dthreshold::Float32=1f-5        ###< Minimum detector threshold to accept a point
 
     descriptor::DESCRIPTOR_TYPE=MLDB    ###< Type of descriptor

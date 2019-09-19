@@ -1,6 +1,5 @@
 using Plots
-# pyplot()
-# plotly()
+pyplot()
 
 using Images, TestImages
 using FileIO
@@ -16,7 +15,7 @@ img = rawview(channelview(testimage(imagename))) / 256
 
 img_height, img_width = size(img)
 
-opt = AKAZEOptions(omin=3, img_width=img_width, img_height=img_height, diffusivity=WEICKERT)
+opt = AKAZEOptions(omin=3, img_width=img_width, img_height=img_height, diffusivity=WEICKERT, dthreshold=4e-5)
 akaze = AKAZE(opt)
 
 # evolution1.Create_Nonlinear_Scale_Space(img1_32);
@@ -43,7 +42,17 @@ mkcolorimage(img) = colorview(RGB, img, img, img)
 
 pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
 
-save("pirate.png", testimage(imagename))
 
-# plot(mkcolorimage(testimage(imagename))[end:-1:1,:])
-# plot!(pp[:,1], 513-pp[:,2], m=3, l=0, color=:red, ratio=1)
+orig = open("/home/user/src/akaze/build/bin/keypoints.txt") do x
+    el = eachline(x)
+    iterate(el)
+    iterate(el)
+    reshape([parse(Float64, st) for r in el for st in split(r)[1:2]], 2, :)
+end
+
+# save("pirate.png", testimage(imagename))
+
+# plot(size=(800,800))
+plot(RGB.(testimage(imagename)))
+plot!(pp[:,1], pp[:,2], m=5, l=0, color=:red, ratio=1, shape=:x)
+plot!(orig[1,:], orig[2,:], m=5, l=0, color=:yellow, ratio=1, shape=:+)
