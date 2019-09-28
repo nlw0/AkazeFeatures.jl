@@ -98,7 +98,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset*2))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))
@@ -160,8 +160,8 @@ function Feature_Detection(akaze) #::kpts
 
     Compute_Multiscale_Derivatives(akaze)
     Compute_Determinant_Hessian_Response(akaze)
-    kpts = Find_Scale_Space_Extrema(akaze)
-    # Do_Subpixel_Refinement(akaze, kpts)
+    allkpts = Find_Scale_Space_Extrema(akaze)
+    kpts = Do_Subpixel_Refinement(akaze, allkpts)
 
     t2 = time_ns()
     akaze.timing_.detector = t2 - t1
@@ -244,13 +244,13 @@ function Find_Scale_Space_Extrema(akaze)
 
             ## Filter the points with the detector threshold
             if value > akaze.options_.dthreshold &&
-               value >= akaze.options_.min_dthreshold &&
-               value >= ev.Ldet[j, k-1] &&
-               value > ev.Ldet[j, k+1] &&
-               value >= ev.Ldet[j-1, k-1] &&
-               value >= ev.Ldet[j-1, k] &&
-               value >= ev.Ldet[j-1, k+1] &&
-               value > ev.Ldet[j+1, k-1] && value > ev.Ldet[j+1, k] && value > ev.Ldet[j+1, k+1]
+                value >= akaze.options_.min_dthreshold &&
+                value >= ev.Ldet[j, k-1] &&
+                value > ev.Ldet[j, k+1] &&
+                value >= ev.Ldet[j-1, k-1] &&
+                value >= ev.Ldet[j-1, k] &&
+                value >= ev.Ldet[j-1, k+1] &&
+                value > ev.Ldet[j+1, k-1] && value > ev.Ldet[j+1, k] && value > ev.Ldet[j+1, k+1]
 
                 is_extremum = true
                 point.response = abs(value)
@@ -339,4 +339,57 @@ function Find_Scale_Space_Extrema(akaze)
     t2 = time_ns()
     akaze.timing_.extrema = t2 - t1
     kpts
+end
+
+
+################################################################
+function Do_Subpixel_Refinement(akaze, kpts)
+    newkpts = []
+
+    t1 = time_ns()
+
+    for kp in kpts
+        ratio = 2.0^kp.octave
+        k = 1 + round(Int, kp.pt.x/ratio)
+        j = 1 + round(Int, kp.pt.y/ratio)
+
+        Ldet = akaze.evolution_[kp.class_id].Ldet
+        ## Compute the gradient
+        Dx = 0.5 * (Ldet[j,k+1] - Ldet[j,k-1])
+        Dy = 0.5 * (Ldet[j+1,k] - Ldet[j-1,k])
+
+        ## Compute the Hessian
+        Dxx = Ldet[j,k+1] + Ldet[j,k-1] - 2.0 * Ldet[j,k]
+        Dyy = Ldet[j+1,k] + Ldet[j-1,k] - 2.0 * Ldet[j,k]
+        Dxy = 0.25 * (Ldet[j+1,k+1] + Ldet[j-1,k-1] - Ldet[j-1,k+1] - Ldet[j+1,k-1])
+
+        ## Solve the linear system
+        A = [Dxx Dxy
+             Dxy Dyy]
+        b = -[Dx, Dy]
+
+        dst = A \ b
+
+        # if (fabs(dst(0)) <= 1.0 && fabs(dst(1)) <= 1.0) {
+        newkp = KeyPoint(kp)
+        newkp.pt.x = k - 1 + dst[1]
+        newkp.pt.y = j - 1 + dst[2]
+        power = 2 ^ akaze.evolution_[newkp.class_id].octave
+        newkp.pt.x = newkp.pt.x*power + 0.5*(power-1)
+        newkp.pt.y = newkp.pt.y*power + 0.5*(power-1)
+        newkp.angle = 0.0
+
+        ## In OpenCV the size of a keypoint its the diameter
+        newkp.size *= 2.0;
+        push!(newkpts, newkp)
+        ## Delete the point since its not stable
+        # else {
+        # kpts.erase(kpts.begin()+i);
+        # i--;
+        # end
+    end
+
+    t2 = time_ns()
+    akaze.timing_.subpixel = t2 - t1
+    newkpts
 end

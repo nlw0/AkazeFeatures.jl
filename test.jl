@@ -11,12 +11,15 @@ include("nonlinear-diffusion.jl")
 
 # imagename="cameraman"
 # imagename="pirate"
-# img = rawview(channelview(testimage(imagename))) / 255
-imagename = "images/square.png"
+# oriimg = testimage(imagename)
+
+# imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
-oriimg = load(imagename)
+imagename="images/pirate.png"
+# oriimg = load(imagename)
+
 img = rawview(channelview(oriimg)) / 255
 
 img_height, img_width = size(img)
@@ -25,8 +28,10 @@ opt = AKAZEOptions(
     omin = 3,
     img_width = img_width,
     img_height = img_height,
+    # diffusivity = PM_G1,
+    # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
-    diffusivity = PM_G2,
+    diffusivity = CHARBONNIER,
     dthreshold = 4e-5,
     # dthreshold = 0#1e-5,
 )
@@ -38,6 +43,7 @@ akaze = AKAZE(opt)
 
 Create_Nonlinear_Scale_Space(akaze, img)
 kpts = Feature_Detection(akaze)
+pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
 
 
 mkcolorimage(img) = colorview(RGB, img, img, img)
@@ -53,12 +59,10 @@ mkcolorimage(img) = colorview(RGB, img, img, img)
 # end
 
 
-pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
-
 # [k for k in kpts if k.pt.x>200 && k.pt.x<300 && k.pt.y<300]
-[k for k in kpts if k.pt.x<200 && k.pt.y<200]
+# [k for k in kpts if k.pt.x<200 && k.pt.y<200]
 
-run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0`)
+run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0 --dthreshold 0.0000001`)
 
 orig = open("keypoints.txt") do x
     el = eachline(x)
