@@ -1,8 +1,8 @@
-using Plots
-pyplot()
-
 using Images, TestImages
 using FileIO
+
+using Plots
+pyplot()
 
 include("akaze-config.jl")
 include("akaze.jl")
@@ -10,12 +10,26 @@ include("fed.jl")
 include("nonlinear-diffusion.jl")
 
 # imagename="cameraman"
-imagename="pirate"
-img = rawview(channelview(testimage(imagename))) / 256
+# imagename="pirate"
+# img = rawview(channelview(testimage(imagename))) / 255
+# imagename = "images/square.png"
+# imagename = "images/concave.png"
+# imagename = "images/wiggly.png"
+imagename = "images/wiggly-blur.png"
+oriimg = load(imagename)
+img = rawview(channelview(oriimg)) / 255
 
 img_height, img_width = size(img)
 
-opt = AKAZEOptions(omin=3, img_width=img_width, img_height=img_height, diffusivity=WEICKERT, dthreshold=4e-5)
+opt = AKAZEOptions(
+    omin = 3,
+    img_width = img_width,
+    img_height = img_height,
+    # diffusivity = WEICKERT,
+    diffusivity = PM_G2,
+    dthreshold = 4e-5,
+    # dthreshold = 0#1e-5,
+)
 akaze = AKAZE(opt)
 
 # evolution1.Create_Nonlinear_Scale_Space(img1_32);
@@ -27,7 +41,6 @@ kpts = Feature_Detection(akaze)
 
 
 mkcolorimage(img) = colorview(RGB, img, img, img)
-
 
 
 # function demo_scalespace()
@@ -42,8 +55,9 @@ mkcolorimage(img) = colorview(RGB, img, img, img)
 
 pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
 
+run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0`)
 
-orig = open("/home/user/src/akaze/build/bin/keypoints.txt") do x
+orig = open("keypoints.txt") do x
     el = eachline(x)
     iterate(el)
     iterate(el)
@@ -53,6 +67,8 @@ end
 # save("pirate.png", testimage(imagename))
 
 # plot(size=(800,800))
-plot(RGB.(testimage(imagename)), xticks=:native, yticks=:native, yflip=false)
-plot!(pp[:,1], pp[:,2], m=5, l=0, color=:red, ratio=1, shape=:x, label="this")
-plot!(orig[1,:], orig[2,:], m=5, l=0, color=:yellow, ratio=1, shape=:+, label="original")
+# plot(RGB.(testimage(imagename)), xticks=:native, yticks=:native, yflip=false)
+plot([-0.5, 511.5], [-0.5,511.5], RGB.(oriimg), yflip = false)
+plot!(pp[:, 1], pp[:, 2], m = 5, l = 0, color = :red, ratio = 1, shape = :x, label = "this")
+plot!(orig[1, :], orig[2, :], m = 5, l = 0, color = :yellow, ratio = 1, shape = :+, label = "original")
+aa = plot!(xticks = :native, yticks = :native)

@@ -236,8 +236,8 @@ function Find_Scale_Space_Extrema(akaze)
                 point.class_id = i
                 ratio = 2.0^point.octave
                 sigma_size_ = round(Int64, point.size/ratio)
-                point.pt.x = k
-                point.pt.y = j
+                point.pt.x = k-1
+                point.pt.y = j-1
 
                 ## Compare response with the same and lower scale
                 for (pki, otherpoint) in enumerate(kpts_aux)
@@ -268,7 +268,7 @@ function Find_Scale_Space_Extrema(akaze)
                     up_y = round(Int64, point.pt.y-smax*sigma_size_)-1
                     down_y = round(Int64, point.pt.y+smax*sigma_size_)+1
 
-                    if left_x < 1 || right_x > cols || up_y < 1 || down_y > rows
+                    if left_x < 0 || right_x >= cols || up_y < 0 || down_y >= rows
                         is_out = true
                     end
 

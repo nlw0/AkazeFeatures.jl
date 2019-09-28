@@ -58,19 +58,21 @@ end
 function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
     hist = zeros(Int32, nbins)
 
-    hmax = sqrt(maximum(y->sum(x->x^2, y), zip(Lx[:], Ly[:])))
+    @show hmax = sqrt(maximum(y->sum(x->x^2, y), zip(Lx[:], Ly[:])))
 
     for (lx, ly) in zip(Lx[:], Ly[:])
-        if (lx, ly) != (0.0, 0.0)
-            modg = sqrt(lx^2 + ly^2)
+        modg = sqrt(lx^2 + ly^2)
+        if modg > 1e-10
             nbin = ceil(Int, nbins*(modg/hmax))  # limiting to nbins should not be necessary
             hist[nbin] += 1
         end
     end
 
+    display(hist)
+
     nthreshold = floor(Int, sum(hist) * perc)
 
-    k = findfirst(hx -> hx > nthreshold, cumsum(hist))
+    @show k = findfirst(hx -> hx > nthreshold, cumsum(hist))
 
     return if k == nothing
         0.03
