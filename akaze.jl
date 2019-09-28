@@ -1,7 +1,9 @@
 using ImageTransformations: imresize
 
 
-fy, fx = Kernel.ando3()
+fy, fx = Kernel.scharr()
+# fy, fx = Kernel.ando3()
+# fy, fx = Kernel.ando5()
 
 ################################################################
 mutable struct AKAZE
@@ -26,21 +28,18 @@ mutable struct AKAZE
     function AKAZE(options::AKAZEOptions)
 
         ## Smallest possible octave and allow one scale if the image is small
-        octavemax = min(
-            options.omax,
-            mylog2(options.img_width÷80),
-            mylog2(options.img_height÷40)
-        )
+        octavemax = min(options.omax, mylog2(options.img_width ÷ 80), mylog2(options.img_height ÷ 40))
 
-        evolution = map(Iterators.product(0:options.nsublevels-1, 0:octavemax)) do (j,i)
-            construct_tevolution(
-                image_width = options.img_width >> i,
-                image_height = options.img_height >> i,
-                esigma = options.soffset * 2.0^(j/options.nsublevels + i),
-                octave = i,
-                sublevel = j
-            )
-        end
+        evolution =
+            map(Iterators.product(0:options.nsublevels-1, 0:octavemax)) do (j, i)
+                construct_tevolution(
+                    image_width = options.img_width >> i,
+                    image_height = options.img_height >> i,
+                    esigma = options.soffset * 2.0^(j / options.nsublevels + i),
+                    octave = i,
+                    sublevel = j,
+                )
+            end
 
         ncycles = length(evolution) - 1
         reordering = true
@@ -53,12 +52,28 @@ mutable struct AKAZE
         end
         nsteps, tsteps = [[x...] for x in zip(ntau...)]
 
-        new(options, evolution, ncycles, reordering, tsteps, nsteps, 0,0,0,AKAZETiming(0,0,0,0,0,0,0))
+        new(
+            options,
+            evolution,
+            ncycles,
+            reordering,
+            tsteps,
+            nsteps,
+            0,
+            0,
+            0,
+            AKAZETiming(0, 0, 0, 0, 0, 0, 0),
+        )
     end
 end
 
 
-mylog2(i::Int, acc=0) = if i==1 acc else mylog2(i>>1,acc+1) end
+mylog2(i::Int, acc = 0) =
+    if i == 1
+        acc
+    else
+        mylog2(i >> 1, acc + 1)
+    end
 
 @with_kw mutable struct Point
     x
@@ -75,7 +90,7 @@ end
 end
 
 
-KeyPoint(a,b) = KeyPoint(a,b,-1.0,0.0,0,-1)
+KeyPoint(a, b) = KeyPoint(a, b, -1.0, 0.0, 0, -1)
 
 ################################################################
 function Create_Nonlinear_Scale_Space(akaze, img)
@@ -91,14 +106,18 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Ly, Kernel.gaussian(akaze.options_.soffset))
 
     ## First compute the kcontrast factor
-    akaze.options_.kcontrast = compute_k_percentile(img, akaze.options_.kcontrast_percentile,
-                                                    gscale=1.0, nbins=akaze.options_.kcontrast_nbins)
+    akaze.options_.kcontrast = compute_k_percentile(
+        img,
+        akaze.options_.kcontrast_percentile,
+        gscale = 1.0,
+        nbins = akaze.options_.kcontrast_nbins,
+    )
 
-    t2 = time_ns();
-    akaze.timing_.kcontrast = t2-t1
+    t2 = time_ns()
+    akaze.timing_.kcontrast = t2 - t1
 
     ## Now generate the rest of evolution levels
-    for i in 2:length(akaze.evolution_)
+    for i = 2:length(akaze.evolution_)
         if akaze.evolution_[i].octave > akaze.evolution_[i-1].octave
             akaze.evolution_[i].Lt = halfsample_image(akaze.evolution_[i-1].Lt)
             akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
@@ -117,21 +136,21 @@ function Create_Nonlinear_Scale_Space(akaze, img)
         akaze.evolution_[i].Lflow .= calculate_diffusivity(
             akaze.evolution_[i].Lx,
             akaze.evolution_[i].Ly,
-            akaze.options_.kcontrast
+            akaze.options_.kcontrast,
         )
 
         ## Perform FED n inner steps
-        for j in 1:akaze.nsteps_[i-1]
+        for j = 1:akaze.nsteps_[i-1]
             nld_step_scalar(akaze.evolution_[i].Lt, akaze.evolution_[i].Lflow, akaze.tsteps_[i-1][j])
         end
     end
 
     t2 = time_ns()
-    akaze.timing_.scale = t2-t1
+    akaze.timing_.scale = t2 - t1
 end
 
 
-halfsample_image(img) = imresize(img, size(img).÷2)
+halfsample_image(img) = imresize(img, size(img) .÷ 2)
 
 
 ################################################################
@@ -145,7 +164,7 @@ function Feature_Detection(akaze) #::kpts
     # Do_Subpixel_Refinement(akaze, kpts)
 
     t2 = time_ns()
-    akaze.timing_.detector = t2-t1
+    akaze.timing_.detector = t2 - t1
     kpts
 end
 
@@ -164,7 +183,7 @@ function Compute_Multiscale_Derivatives(akaze)
     end
 
     t2 = time_ns()
-    akaze.timing_.derivatives = t2-t1
+    akaze.timing_.derivatives = t2 - t1
 end
 
 
@@ -177,7 +196,7 @@ function Compute_Determinant_Hessian_Response(akaze)
             @info "Computing detector response. Determinant of Hessian. Evolution time: $ev.etime"
         end
 
-        ev.Ldet .= ev.Lxx .* ev.Lyy - ev.Lxy.^2
+        ev.Ldet .= ev.Lxx .* ev.Lyy - ev.Lxy .^ 2
     end
 end
 
@@ -200,15 +219,15 @@ function Find_Scale_Space_Extrema(akaze)
     is_repeated = false
     is_out = false
 
-    point = KeyPoint(Point(0.0,0.0), 0)
+    point = KeyPoint(Point(0.0, 0.0), 0)
     kpts_aux = KeyPoint[]
     kpts = KeyPoint[]
 
     ## Set maximum size
     smax = if akaze.options_.descriptor in (SURF_UPRIGHT, SURF, MLDB_UPRIGHT, MLDB)
-        10.0*sqrt(2.0)
+        10.0 * sqrt(2.0)
     else  # (MSURF_UPRIGHT, MSURF)
-        12.0*sqrt(2.0)
+        12.0 * sqrt(2.0)
     end
 
     t1 = time_ns()
@@ -216,7 +235,7 @@ function Find_Scale_Space_Extrema(akaze)
     for (i, ev) in enumerate(akaze.evolution_)
         rows, cols = size(ev.Ldet)
 
-        for (j, k) in Iterators.product(2:rows-1,2:cols-1)
+        for (j, k) in Iterators.product(2:rows-1, 2:cols-1)
 
             is_extremum = false
             is_repeated = false
@@ -224,30 +243,36 @@ function Find_Scale_Space_Extrema(akaze)
             value = ev.Ldet[j, k]
 
             ## Filter the points with the detector threshold
-            if value > akaze.options_.dthreshold && value >= akaze.options_.min_dthreshold &&
-                value > ev.Ldet[j,k-1] && value > ev.Ldet[j,k+1] &&
-                value > ev.Ldet[j-1,k-1] && value > ev.Ldet[j-1,k] && value > ev.Ldet[j-1,k+1] &&
-                value > ev.Ldet[j+1,k-1] && value > ev.Ldet[j+1,k] && value > ev.Ldet[j+1,k+1]
+            if value > akaze.options_.dthreshold &&
+               value >= akaze.options_.min_dthreshold &&
+               value >= ev.Ldet[j, k-1] &&
+               value > ev.Ldet[j, k+1] &&
+               value >= ev.Ldet[j-1, k-1] &&
+               value >= ev.Ldet[j-1, k] &&
+               value >= ev.Ldet[j-1, k+1] &&
+               value > ev.Ldet[j+1, k-1] && value > ev.Ldet[j+1, k] && value > ev.Ldet[j+1, k+1]
 
                 is_extremum = true
                 point.response = abs(value)
-                point.size = ev.esigma*akaze.options_.derivative_factor
+                point.size = ev.esigma * akaze.options_.derivative_factor
                 point.octave = ev.octave
                 point.class_id = i
                 ratio = 2.0^point.octave
-                sigma_size_ = round(Int64, point.size/ratio)
-                point.pt.x = k-1
-                point.pt.y = j-1
+                sigma_size_ = round(Int64, point.size / ratio)
+                point.pt.x = k - 1
+                point.pt.y = j - 1
 
                 ## Compare response with the same and lower scale
                 for (pki, otherpoint) in enumerate(kpts_aux)
 
-                    if point.class_id-1 == otherpoint.class_id || point.class_id == otherpoint.class_id
+                    if point.class_id - 1 == otherpoint.class_id || point.class_id == otherpoint.class_id
 
-                        dist = ((point.pt.x*ratio-otherpoint.pt.x)*(point.pt.x*ratio-otherpoint.pt.x) +
-                                (point.pt.y*ratio-otherpoint.pt.y)*(point.pt.y*ratio-otherpoint.pt.y))
+                        dist = ((point.pt.x * ratio - otherpoint.pt.x) *
+                                (point.pt.x * ratio - otherpoint.pt.x) +
+                                (point.pt.y * ratio - otherpoint.pt.y) *
+                                (point.pt.y * ratio - otherpoint.pt.y))
 
-                        if dist <= point.size*point.size
+                        if dist <= point.size * point.size
                             if point.response > otherpoint.response
                                 id_repeated = pki
                                 is_repeated = true
@@ -263,18 +288,18 @@ function Find_Scale_Space_Extrema(akaze)
                 ## Check out of bounds
                 if is_extremum
                     ## Check that the point is under the image limits for the descriptor computation
-                    left_x = round(Int64, point.pt.x-smax*sigma_size_)-1
-                    right_x = round(Int64, point.pt.x+smax*sigma_size_) +1
-                    up_y = round(Int64, point.pt.y-smax*sigma_size_)-1
-                    down_y = round(Int64, point.pt.y+smax*sigma_size_)+1
+                    left_x = round(Int64, point.pt.x - smax * sigma_size_) - 1
+                    right_x = round(Int64, point.pt.x + smax * sigma_size_) + 1
+                    up_y = round(Int64, point.pt.y - smax * sigma_size_) - 1
+                    down_y = round(Int64, point.pt.y + smax * sigma_size_) + 1
 
                     if left_x < 0 || right_x >= cols || up_y < 0 || down_y >= rows
                         is_out = true
                     end
 
                     if is_out == false
-                        point.pt.x = point.pt.x*ratio + 0.5*(ratio-1.0)
-                        point.pt.y = point.pt.y*ratio + 0.5*(ratio-1.0)
+                        point.pt.x = point.pt.x * ratio #+ 0.5*(ratio-1.0)
+                        point.pt.y = point.pt.y * ratio #+ 0.5*(ratio-1.0)
                         if is_repeated == false
                             push!(kpts_aux, deepcopy(point))
                         else
@@ -289,17 +314,17 @@ function Find_Scale_Space_Extrema(akaze)
     ## Now filter points with the upper scale level
     for (i, point) in enumerate(kpts_aux)
 
-        is_repeated = false;
+        is_repeated = false
 
-        for j in i+1:length(kpts_aux)
+        for j = i+1:length(kpts_aux)
 
             ## Compare response with the upper scale
-            if (point.class_id+1) == kpts_aux[j].class_id
+            if (point.class_id + 1) == kpts_aux[j].class_id
 
-                dist = ((point.pt.x-kpts_aux[j].pt.x)*(point.pt.x-kpts_aux[j].pt.x) +
-                        (point.pt.y-kpts_aux[j].pt.y)*(point.pt.y-kpts_aux[j].pt.y))
+                dist = ((point.pt.x - kpts_aux[j].pt.x) * (point.pt.x - kpts_aux[j].pt.x) +
+                        (point.pt.y - kpts_aux[j].pt.y) * (point.pt.y - kpts_aux[j].pt.y))
 
-                if dist <= point.size*point.size && point.response < kpts_aux[j].response
+                if dist <= point.size * point.size && point.response < kpts_aux[j].response
                     is_repeated = true
                     break
                 end
@@ -312,6 +337,6 @@ function Find_Scale_Space_Extrema(akaze)
     end
 
     t2 = time_ns()
-    akaze.timing_.extrema = t2-t1
+    akaze.timing_.extrema = t2 - t1
     kpts
 end

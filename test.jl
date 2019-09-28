@@ -12,10 +12,10 @@ include("nonlinear-diffusion.jl")
 # imagename="cameraman"
 # imagename="pirate"
 # img = rawview(channelview(testimage(imagename))) / 255
-# imagename = "images/square.png"
+imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
-imagename = "images/wiggly-blur.png"
+# imagename = "images/wiggly-blur.png"
 oriimg = load(imagename)
 img = rawview(channelview(oriimg)) / 255
 
@@ -55,6 +55,9 @@ mkcolorimage(img) = colorview(RGB, img, img, img)
 
 pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
 
+# [k for k in kpts if k.pt.x>200 && k.pt.x<300 && k.pt.y<300]
+[k for k in kpts if k.pt.x<200 && k.pt.y<200]
+
 run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0`)
 
 orig = open("keypoints.txt") do x
@@ -66,7 +69,7 @@ end
 
 # save("pirate.png", testimage(imagename))
 
-# plot(size=(800,800))
+plot(size=(800,800))
 # plot(RGB.(testimage(imagename)), xticks=:native, yticks=:native, yflip=false)
 plot([-0.5, 511.5], [-0.5,511.5], RGB.(oriimg), yflip = false)
 plot!(pp[:, 1], pp[:, 2], m = 5, l = 0, color = :red, ratio = 1, shape = :x, label = "this")
