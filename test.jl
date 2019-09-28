@@ -14,8 +14,9 @@ include("nonlinear-diffusion.jl")
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
-imagename = "images/pirate.png"
+# imagename = "images/pirate.png"
 # imagename = "images/cameraman.png"
+imagename = "images/zezao.png"
 # imagename = "images/polly.png"
 # imagename = "images/polly-small.png"
 
@@ -26,7 +27,7 @@ img = rawview(channelview(oriimg)) / 255
 img_height, img_width = size(img)
 
 opt = AKAZEOptions(
-    omin = 4,
+    omin = 5,
     # nsublevels=5,
     img_width = img_width,
     img_height = img_height,
@@ -34,8 +35,8 @@ opt = AKAZEOptions(
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
     diffusivity = CHARBONNIER,
-    dthreshold = 4e-5,
-    # dthreshold = 16e-5,
+    # dthreshold = 4e-5,
+    dthreshold = 16e-5,
 )
 akaze = AKAZE(opt)
 
@@ -44,7 +45,7 @@ kpts = Feature_Detection(akaze)
 
 pp = vcat([[p.pt.x p.pt.y] for p in kpts]...)
 
-origpt = original_akaze_features(imagename, Int(opt.diffusivity), 0.004)
+origpt = original_akaze_features(imagename, Int(opt.diffusivity), 0.002)
 
 plot(size=(800,800))
 plot!([-0.5, size(img)[2]-0.5], [-0.5,size(img)[1]-0.5], RGB.(oriimg), yflip = false)
