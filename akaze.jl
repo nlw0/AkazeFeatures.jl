@@ -98,7 +98,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset*2))
+    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))

@@ -74,8 +74,6 @@ function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
         end
     end
 
-    display(hist)
-
     nthreshold = floor(Int, sum(hist) * perc)
 
     k = findfirst(hx -> hx > nthreshold, cumsum(hist))
