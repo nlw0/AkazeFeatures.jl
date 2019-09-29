@@ -31,7 +31,7 @@ mutable struct AKAZE
         octavemax = min(options.omax, mylog2(options.img_width ÷ 80), mylog2(options.img_height ÷ 40))
 
         evolution =
-            map(Iterators.product(0:options.nsublevels-1, 0:octavemax)) do (j, i)
+            map(Iterators.product(0:options.nsublevels-1, 0:octavemax-1)) do (j, i)
                 construct_tevolution(
                     image_width = options.img_width >> i,
                     image_height = options.img_height >> i,
@@ -98,7 +98,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset*2))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))
@@ -235,7 +235,7 @@ function Find_Scale_Space_Extrema(akaze)
     for (i, ev) in enumerate(akaze.evolution_)
         rows, cols = size(ev.Ldet)
 
-        for (j, k) in Iterators.product(2:rows-1, 2:cols-1)
+        for (k, j) in Iterators.product(2:cols-1, 2:rows-1)
 
             is_extremum = false
             is_repeated = false
@@ -262,6 +262,8 @@ function Find_Scale_Space_Extrema(akaze)
                 point.pt.x = k - 1
                 point.pt.y = j - 1
 
+                # println("point at $i $j $k $(ev.esigma) $(akaze.options_.derivative_factor) size $(point.size)")
+
                 ## Compare response with the same and lower scale
                 for (pki, otherpoint) in enumerate(kpts_aux)
 
@@ -279,11 +281,11 @@ function Find_Scale_Space_Extrema(akaze)
                             else
                                 is_extremum = false
                             end
+                            println("$is_repeated $(i-1) $j $k $(point.response) $(otherpoint.response)")
                             break
                         end
                     end
                 end
-
 
                 ## Check out of bounds
                 if is_extremum
@@ -298,8 +300,8 @@ function Find_Scale_Space_Extrema(akaze)
                     end
 
                     if is_out == false
-                        point.pt.x = point.pt.x * ratio #+ 0.5*(ratio-1.0)
-                        point.pt.y = point.pt.y * ratio #+ 0.5*(ratio-1.0)
+                        point.pt.x = point.pt.x * ratio + 0.5*(ratio-1.0)
+                        point.pt.y = point.pt.y * ratio + 0.5*(ratio-1.0)
                         if is_repeated == false
                             push!(kpts_aux, deepcopy(point))
                         else
@@ -344,7 +346,7 @@ end
 
 ################################################################
 function Do_Subpixel_Refinement(akaze, kpts)
-    newkpts = []
+    newkpts = KeyPoint[]
 
     t1 = time_ns()
 

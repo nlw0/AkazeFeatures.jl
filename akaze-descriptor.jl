@@ -40,6 +40,9 @@ function Compute_Descriptors(akaze, kpts)
     desc
 end
 
+mymin(a,b) = ifelse(a<b,a,b)
+mymax(a,b) = ifelse(a>b,a,b)
+
 ################################################################
 function Compute_Main_Orientation(akaze, kpt)
 
@@ -56,28 +59,33 @@ function Compute_Main_Orientation(akaze, kpt)
 
     idx = 1
     ## Calculate derivatives responses for points within radius of 6*scale
+    (limj,limk) = size(akaze.evolution_[level].Lx)
     for i in -6:6
         for j in -6:6
             if i*i + j*j < 36
-                iy = round(Int64, yf + j*s)+1
-                ix = round(Int64, xf + i*s)+1
+                iy = mymin(limj, mymax(1, round(Int64, yf + j*s)+1))
+                ix = mymin(limk, mymax(1, round(Int64, xf + i*s)+1))
 
                 gweight = gauss25[abs(i)+1, abs(j)+1]
                 resX[idx] = gweight * akaze.evolution_[level].Lx[iy, ix]
                 resY[idx] = gweight * akaze.evolution_[level].Ly[iy, ix]
-                Ang[idx] = atan(resY[idx], resX[idx])
+                Ang[idx] = mod(atan(resY[idx], resX[idx]), 2π)
                 idx += 1
             end
         end
     end
 
+    # for u in 1:109
+    #     println("$u $(resX[u]) $(resY[u]) $(Ang[u])")
+    # end
+
     ## Variables for computing the dominant direction
-    sumX = 0.0
-    sumY = 0.0
-    max = 0.0
+    maxXY = 0.0
     ## Loop slides pi/3 window around feature point
     for ang1 in 0:0.15:2.0*π
         ang2 = if (ang1 + π/3.0 > 2.0*π) ang1 - 5.0 * π/3.0 else ang1 + π/3.0 end
+        sumX = 0.0
+        sumY = 0.0
 
         for k in 1:109
             ## Get angle from the x-axis of the sample point
@@ -95,10 +103,10 @@ function Compute_Main_Orientation(akaze, kpt)
 
         ## if the vector produced from this window is longer than all
         ## previous vectors then this forms the new dominant direction
-        if (sumX*sumX + sumY*sumY > max)
+        if (sumX*sumX + sumY*sumY > maxXY)
             ## store largest orientation
-            max = sumX*sumX + sumY*sumY
-            kpt.angle = atan(sumY, sumX)
+            maxXY = sumX*sumX + sumY*sumY
+            kpt.angle = mod(atan(sumY, sumX), 2π)
         end
     end
 end

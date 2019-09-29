@@ -8,13 +8,17 @@ function demo_scalespace(akaze)
     imshow(load("akazetest.png"))
 end
 
-function original_akaze_features(imagename, diffusivity, dthreshold=0.001)
-    run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0 --dthreshold $dthreshold`)
+function original_akaze_features(imagename, diffusivity; nsublevels=4, omax=4, dthreshold=0.001)
+    run(`/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0 --dthreshold $dthreshold --descriptor 5 --nsublevels $nsublevels --omax $omax`)
 
-    open("keypoints.txt") do x
+    data = open("keypoints.txt") do x
         el = eachline(x)
         iterate(el)
         iterate(el)
-        reshape([parse(Float64, st) for r in el for st in split(r)[1:2]], 2, :)
+        ncols = 4
+        reshape([parse(Float64, st) for r in el for st in split(r)[1:ncols]], ncols, :)
+    end
+    map(eachcol(data)) do (x,y,size,angle)
+        KeyPoint(pt=Point(x,y), size=size, angle=angle)
     end
 end
