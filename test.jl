@@ -14,6 +14,7 @@ include("fed.jl")
 include("demo.jl")
 include("nonlinear-diffusion.jl")
 
+# imagename = "images/dirac.png"
 imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
@@ -32,14 +33,14 @@ img_height, img_width = size(img)
 
 opt = AKAZEOptions(
     omin = 3,
-    omax = 2,
-    nsublevels=3,
+    omax = 4,
+    nsublevels=5,
     img_width = img_width,
     img_height = img_height,
-    # diffusivity = PM_G1,
+    diffusivity = PM_G1,
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
-    diffusivity = CHARBONNIER,
+    # diffusivity = CHARBONNIER,
     dthreshold = 1e-5,
     # dthreshold = 2e-5,
     # dthreshold = 1.5e-5,
@@ -86,8 +87,8 @@ plot_features(kpts[1:min(length(kpts),500)], "Oranges");
 plot!(xticks = :native, yticks = :native)
 
 
-evs = map(0:5) do ee
-    open("/home/user/src/AKAZE.jl/evLdet-000$ee.ext") do ff
+evs = map(0:14) do ee
+    open("/home/user/src/AKAZE.jl/evLdet-$(lpad(ee,4,'0')).ext") do ff
         datas = read(ff, String)[40:end]
         data = YAML.load(datas)
         (sz,) = size(data["data"])
@@ -100,12 +101,68 @@ end
 
 # aa = evs[1][119:140,119:140]
 # oo = akaze.evolution_[1].Ldet[119:140,119:140]
+mev = [ev.Ldet for ev in akaze.evolution_]
+
 a=374
 o=391
-q=3
+q=5
 aa = evs[q][a:o,a:o]
 oo = akaze.evolution_[q].Ldet[a:o,a:o]
-heatmap(aa, subplot=1, layout=2)
-heatmap!(oo, subplot=2, layout=2)
+heatmap(aa, subplot=1, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
+heatmap!(oo, subplot=2, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
 
-# heatmap((aa .+ 1e-20) ./ (oo .+ 1e-18))
+plot(size=(1500,900), layout=(3,5))
+for q in 1:15
+    # a=374 ÷ 2^akaze.evolution_[q].octave
+    # o=391 ÷ 2^akaze.evolution_[q].octave
+    a=330 ÷ 2^akaze.evolution_[q].octave
+    o=410 ÷ 2^akaze.evolution_[q].octave
+    aa = evs[q][a:o,a:o]
+    oo = akaze.evolution_[q].Ldet[a:o,a:o]
+    # heatmap!(aa, subplot=q, layout=(5,3), xticks=:native, yticks=:native, colorbar=false, ratio=1)
+    # heatmap!(aa, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+    heatmap!(oo, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+end
+plot!()
+
+heatmap((aa .+ 1e-20) ./ (oo .+ 1e-18))
+
+o = hcat([[minimum(ev), maximum(ev)] for ev in evs]...)
+m = hcat([[minimum(ev), maximum(ev)] for ev in mev]...)
+
+aa=sort(abs.(evs[4][:]))
+oo=sort(abs.(mev[4][:]))
+plot(aa/aa[end], 1:length(aa))
+plot!(oo/oo[end], 1:length(oo))
+
+
+map(akaze.evolution_) do ev
+    ratio = 2.0 ^ ev.octave
+    round(Int, ev.esigma * opt.derivative_factor/ratio)
+    # ev.esigma * opt.derivative_factor/ratio
+end
+
+
+
+evs = map(0:14) do ee
+    open("/home/user/src/AKAZE.jl/evLt-$(lpad(ee,4,'0')).ext") do ff
+        datas = read(ff, String)[40:end]
+        data = YAML.load(datas)
+        (sz,) = size(data["data"])
+        reshape(data["data"], round(Int, sqrt(sz)), :)'
+    end
+end
+
+plot(size=(1500,900), layout=(3,5))
+for q in 1:15
+    # a=374 ÷ 2^akaze.evolution_[q].octave
+    # o=391 ÷ 2^akaze.evolution_[q].octave
+    a=330 ÷ 2^akaze.evolution_[q].octave
+    o=410 ÷ 2^akaze.evolution_[q].octave
+    aa = evs[q][a:o,a:o]
+    oo = akaze.evolution_[q].Lsmooth[a:o,a:o]
+    # heatmap!(aa, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+    heatmap!(oo, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+end
+plot!()
+savefig("akaze-Lt-pmg1-square-new.png")

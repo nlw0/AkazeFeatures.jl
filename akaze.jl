@@ -28,7 +28,7 @@ mutable struct AKAZE
     function AKAZE(options::AKAZEOptions)
 
         ## Smallest possible octave and allow one scale if the image is small
-        octavemax = min(options.omax, mylog2(options.img_width ÷ 80), mylog2(options.img_height ÷ 40))
+        @show octavemax = min(options.omax, 1+mylog2(options.img_width ÷ 80), 1+mylog2(options.img_height ÷ 40))
 
         evolution =
             map(Iterators.product(0:options.nsublevels-1, 0:octavemax-1)) do (j, i)
@@ -98,7 +98,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset*2))
+    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))
