@@ -101,12 +101,12 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     t1 = time_ns()
 
     ## Copy the original image to the first level of the evolution
-    imfilter!(akaze.evolution_[1].Lt, img, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Lt, img, AkazeGauss(akaze.options_.soffset))
     akaze.evolution_[1].Lsmooth .= akaze.evolution_[1].Lt
     imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lsmooth, fx)
-    imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Lx, akaze.evolution_[1].Lx, AkazeGauss(akaze.options_.soffset))
     imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Lsmooth, fy)
-    imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Ly, Kernel.gaussian(akaze.options_.soffset))
+    imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Ly, AkazeGauss(akaze.options_.soffset))
 
     ## First compute the kcontrast factor
     akaze.options_.kcontrast = compute_k_percentile(
@@ -122,13 +122,13 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     ## Now generate the rest of evolution levels
     for i = 2:length(akaze.evolution_)
         if akaze.evolution_[i].octave > akaze.evolution_[i-1].octave
-            akaze.evolution_[i].Lt = halfsample_image(akaze.evolution_[i-1].Lt)
+            akaze.evolution_[i].Lt .= halfsample_image(akaze.evolution_[i-1].Lt)
             akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
         else
             akaze.evolution_[i].Lt .= akaze.evolution_[i-1].Lt
         end
 
-        imfilter!(akaze.evolution_[i].Lsmooth, akaze.evolution_[i].Lt, Kernel.gaussian(1.0))
+        imfilter!(akaze.evolution_[i].Lsmooth, akaze.evolution_[i].Lt, AkazeGauss(1.0))
 
         ## Compute the Gaussian derivatives Lx and Ly
         imfilter!(akaze.evolution_[i].Lx, akaze.evolution_[i].Lsmooth, fx)
@@ -144,6 +144,7 @@ function Create_Nonlinear_Scale_Space(akaze, img)
 
         ## Perform FED n inner steps
         for j = 1:akaze.nsteps_[i-1]
+            # println("i $i j $(akaze.tsteps_[i-1][j])")
             nld_step_scalar(akaze.evolution_[i].Lt, akaze.evolution_[i].Lflow, akaze.tsteps_[i-1][j])
         end
     end
@@ -397,4 +398,14 @@ function Do_Subpixel_Refinement(akaze, kpts)
     t2 = time_ns()
     akaze.timing_.subpixel = t2 - t1
     newkpts
+end
+
+
+function AkazeGauss(sigma)
+    ksize_x = ceil(Int, 2.0*(1.0 + (sigma-0.8)/(0.3)))
+    ## The kernel size must be and odd number
+    if ((ksize_x % 2) == 0)
+        ksize_x += 1
+    end
+    Kernel.gaussian((sigma,sigma), (ksize_x, ksize_x))
 end

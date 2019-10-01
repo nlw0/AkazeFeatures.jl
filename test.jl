@@ -15,12 +15,12 @@ include("demo.jl")
 include("nonlinear-diffusion.jl")
 
 # imagename = "images/dirac.png"
-# imagename = "images/square.png"
+imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
 # imagename = "images/pirate.png"
-imagename = "images/cameraman.png"
+# imagename = "images/cameraman.png"
 # imagename = "images/zezao.png"
 # imagename = "images/polly.png"
 # imagename = "images/polly-small.png"
@@ -37,11 +37,12 @@ opt = AKAZEOptions(
     nsublevels=5,
     img_width = img_width,
     img_height = img_height,
-    # diffusivity = PM_G1,
+    diffusivity = PM_G1,
     # diffusivity = PM_G2,
-    diffusivity = WEICKERT,
+    # diffusivity = WEICKERT,
     # diffusivity = CHARBONNIER,
-    dthreshold = 1e-5,
+    dthreshold = 1e-3,
+    # dthreshold = 1e-5,
     # dthreshold = 2e-5,
     # dthreshold = 1.5e-5,
     # dthreshold = 4e-5,
@@ -142,27 +143,30 @@ map(akaze.evolution_) do ev
     # ev.esigma * opt.derivative_factor/ratio
 end
 
-
-
 evs = map(0:14) do ee
-    open("/home/user/src/AKAZE.jl/evLt-$(lpad(ee,4,'0')).ext") do ff
+    open("/home/user/src/AKAZE.jl/evLflow-$(lpad(ee,4,'0')).ext") do ff
         datas = read(ff, String)[40:end]
         data = YAML.load(datas)
         (sz,) = size(data["data"])
         reshape(data["data"], round(Int, sqrt(sz)), :)'
     end
 end
-
 plot(size=(1500,900), layout=(3,5))
 for q in 1:15
-    # a=374 ÷ 2^akaze.evolution_[q].octave
-    # o=391 ÷ 2^akaze.evolution_[q].octave
     a=330 ÷ 2^akaze.evolution_[q].octave
     o=410 ÷ 2^akaze.evolution_[q].octave
     aa = evs[q][a:o,a:o]
-    oo = akaze.evolution_[q].Lsmooth[a:o,a:o]
-    # heatmap!(aa, subplot=q, layout=(3,5), colorbar=false, ratio=1)
-    heatmap!(oo, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+    heatmap!(aa, subplot=q, layout=(3,5), ratio=1)
 end
 plot!()
-savefig("akaze-Lt-pmg1-square-new.png")
+savefig("akaze-Lflow-square-ori.png")
+
+plot(size=(1500,900), layout=(3,5))
+for q in 1:15
+    a=330 ÷ 2^akaze.evolution_[q].octave
+    o=410 ÷ 2^akaze.evolution_[q].octave
+    oo = akaze.evolution_[q].Lflow[a:o,a:o]
+    heatmap!(oo, subplot=q, layout=(3,5), ratio=1)
+end
+plot!()
+savefig("akaze-Lflow-square-new.png")

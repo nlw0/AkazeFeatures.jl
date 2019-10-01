@@ -16,7 +16,7 @@ end
 
 pm_g1_diffusivity(Lx, Ly, k) =
     calculate_diffusivity′(Lx, Ly, k) do dL
-        -dL
+        exp(-dL)
     end
 
 pm_g2_diffusivity(Lx, Ly, k) =
