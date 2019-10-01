@@ -15,12 +15,12 @@ include("demo.jl")
 include("nonlinear-diffusion.jl")
 
 # imagename = "images/dirac.png"
-imagename = "images/square.png"
+# imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
 # imagename = "images/pirate.png"
-# imagename = "images/cameraman.png"
+imagename = "images/cameraman.png"
 # imagename = "images/zezao.png"
 # imagename = "images/polly.png"
 # imagename = "images/polly-small.png"
@@ -37,9 +37,9 @@ opt = AKAZEOptions(
     nsublevels=5,
     img_width = img_width,
     img_height = img_height,
-    diffusivity = PM_G1,
+    # diffusivity = PM_G1,
     # diffusivity = PM_G2,
-    # diffusivity = WEICKERT,
+    diffusivity = WEICKERT,
     # diffusivity = CHARBONNIER,
     dthreshold = 1e-5,
     # dthreshold = 2e-5,
@@ -101,7 +101,7 @@ end
 
 # aa = evs[1][119:140,119:140]
 # oo = akaze.evolution_[1].Ldet[119:140,119:140]
-mev = [ev.Ldet for ev in akaze.evolution_]
+mev = [ev.Lt for ev in akaze.evolution_]
 
 a=374
 o=391

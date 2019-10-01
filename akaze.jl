@@ -2,6 +2,9 @@ using ImageTransformations: imresize
 
 
 fy, fx = Kernel.scharr()
+fy .*=32
+fx .*=32
+
 # fy, fx = Kernel.ando3()
 # fy, fx = Kernel.ando5()
 
@@ -281,7 +284,7 @@ function Find_Scale_Space_Extrema(akaze)
                             else
                                 is_extremum = false
                             end
-                            println("$is_repeated $(i-1) $j $k $(point.response) $(otherpoint.response)")
+                            # println("$is_repeated $(i-1) $j $k $(point.response) $(otherpoint.response)")
                             break
                         end
                     end

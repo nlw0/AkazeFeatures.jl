@@ -53,6 +53,8 @@ end
 function compute_k_percentile(img, perc; gscale = 1.0, nbins = 300)
     Lsmooth = imfilter(img, Kernel.gaussian(gscale))
     fy, fx = Kernel.scharr()
+    fy .*=32
+    fx .*=32
     # fx,fy = Kernel.ando3()
 
     w = (size(fx)[1] + 1) ÷ 2
@@ -81,7 +83,7 @@ function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
     return if k == nothing
         0.03
     else
-        @show (hmax * (k - 1)) / nbins
+        @show (hmax * k) / nbins
     end
 end
 
