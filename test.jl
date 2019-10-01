@@ -15,11 +15,11 @@ include("demo.jl")
 include("nonlinear-diffusion.jl")
 
 # imagename = "images/dirac.png"
-imagename = "images/square.png"
+# imagename = "images/square.png"
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
-# imagename = "images/pirate.png"
+imagename = "images/pirate.png"
 # imagename = "images/cameraman.png"
 # imagename = "images/zezao.png"
 # imagename = "images/polly.png"
@@ -37,18 +37,19 @@ opt = AKAZEOptions(
     nsublevels=5,
     img_width = img_width,
     img_height = img_height,
-    diffusivity = PM_G1,
+    # diffusivity = PM_G1,
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
-    # diffusivity = CHARBONNIER,
-    dthreshold = 1e-3,
+    diffusivity = CHARBONNIER,
+    # dthreshold = 1e-3,
+    # dthreshold = 1e-8,
     # dthreshold = 1e-5,
     # dthreshold = 2e-5,
     # dthreshold = 1.5e-5,
     # dthreshold = 4e-5,
     # dthreshold = 16e-5,
     # dthreshold = 32e-5,
-    # dthreshold = 100.0,
+    dthreshold = 200.0,
 )
 akaze = AKAZE(opt)
 
@@ -57,7 +58,7 @@ kpts = Feature_Detection(akaze)
 Compute_Main_Orientation.([akaze], kpts)
 println("Extracted $(length(kpts)) points")
 
-origpt = original_akaze_features(imagename, Int(opt.diffusivity); nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=0.001)
+origpt = original_akaze_features(imagename, Int(opt.diffusivity); nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=0.002)
 println("Original: $(length(origpt)) points")
 
 mycirc = hcat([[cos(t), sin(t)] for t in (2 * π * (0:53) / 53)]...)
@@ -88,85 +89,85 @@ plot_features(kpts[1:min(length(kpts),500)], "Oranges");
 plot!(xticks = :native, yticks = :native)
 
 
-evs = map(0:14) do ee
-    open("/home/user/src/AKAZE.jl/evLdet-$(lpad(ee,4,'0')).ext") do ff
-        datas = read(ff, String)[40:end]
-        data = YAML.load(datas)
-        (sz,) = size(data["data"])
-        reshape(data["data"], round(Int, sqrt(sz)), :)'
-    end
-end
+# evs = map(0:14) do ee
+#     open("/home/user/src/AKAZE.jl/evLdet-$(lpad(ee,4,'0')).ext") do ff
+#         datas = read(ff, String)[40:end]
+#         data = YAML.load(datas)
+#         (sz,) = size(data["data"])
+#         reshape(data["data"], round(Int, sqrt(sz)), :)'
+#     end
+# end
 
-# heatmap(evs[1][119:140,119:140], subplot=1, layout=2)
-# heatmap!(akaze.evolution_[1].Ldet[119:140,119:140], subplot=2, layout=2)
+# # heatmap(evs[1][119:140,119:140], subplot=1, layout=2)
+# # heatmap!(akaze.evolution_[1].Ldet[119:140,119:140], subplot=2, layout=2)
 
-# aa = evs[1][119:140,119:140]
-# oo = akaze.evolution_[1].Ldet[119:140,119:140]
-mev = [ev.Lt for ev in akaze.evolution_]
+# # aa = evs[1][119:140,119:140]
+# # oo = akaze.evolution_[1].Ldet[119:140,119:140]
+# mev = [ev.Lt for ev in akaze.evolution_]
 
-a=374
-o=391
-q=5
-aa = evs[q][a:o,a:o]
-oo = akaze.evolution_[q].Ldet[a:o,a:o]
-heatmap(aa, subplot=1, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
-heatmap!(oo, subplot=2, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
+# a=374
+# o=391
+# q=5
+# aa = evs[q][a:o,a:o]
+# oo = akaze.evolution_[q].Ldet[a:o,a:o]
+# heatmap(aa, subplot=1, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
+# heatmap!(oo, subplot=2, layout=2, xticks=:native, yticks=:native, colorbar=false, ratio=1)
 
-plot(size=(1500,900), layout=(3,5))
-for q in 1:15
-    # a=374 ÷ 2^akaze.evolution_[q].octave
-    # o=391 ÷ 2^akaze.evolution_[q].octave
-    a=330 ÷ 2^akaze.evolution_[q].octave
-    o=410 ÷ 2^akaze.evolution_[q].octave
-    aa = evs[q][a:o,a:o]
-    oo = akaze.evolution_[q].Ldet[a:o,a:o]
-    # heatmap!(aa, subplot=q, layout=(5,3), xticks=:native, yticks=:native, colorbar=false, ratio=1)
-    # heatmap!(aa, subplot=q, layout=(3,5), colorbar=false, ratio=1)
-    heatmap!(oo, subplot=q, layout=(3,5), colorbar=false, ratio=1)
-end
-plot!()
+# plot(size=(1500,900), layout=(3,5))
+# for q in 1:15
+#     # a=374 ÷ 2^akaze.evolution_[q].octave
+#     # o=391 ÷ 2^akaze.evolution_[q].octave
+#     a=330 ÷ 2^akaze.evolution_[q].octave
+#     o=410 ÷ 2^akaze.evolution_[q].octave
+#     aa = evs[q][a:o,a:o]
+#     oo = akaze.evolution_[q].Ldet[a:o,a:o]
+#     # heatmap!(aa, subplot=q, layout=(5,3), xticks=:native, yticks=:native, colorbar=false, ratio=1)
+#     # heatmap!(aa, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+#     heatmap!(oo, subplot=q, layout=(3,5), colorbar=false, ratio=1)
+# end
+# plot!()
 
-heatmap((aa .+ 1e-20) ./ (oo .+ 1e-18))
+# heatmap((aa .+ 1e-20) ./ (oo .+ 1e-18))
 
-o = hcat([[minimum(ev), maximum(ev)] for ev in evs]...)
-m = hcat([[minimum(ev), maximum(ev)] for ev in mev]...)
+# o = hcat([[minimum(ev), maximum(ev)] for ev in evs]...)
+# m = hcat([[minimum(ev), maximum(ev)] for ev in mev]...)
 
-aa=sort(abs.(evs[4][:]))
-oo=sort(abs.(mev[4][:]))
-plot(aa/aa[end], 1:length(aa))
-plot!(oo/oo[end], 1:length(oo))
+# aa=sort(abs.(evs[4][:]))
+# oo=sort(abs.(mev[4][:]))
+# plot(aa/aa[end], 1:length(aa))
+# plot!(oo/oo[end], 1:length(oo))
 
 
-map(akaze.evolution_) do ev
-    ratio = 2.0 ^ ev.octave
-    round(Int, ev.esigma * opt.derivative_factor/ratio)
-    # ev.esigma * opt.derivative_factor/ratio
-end
+# map(akaze.evolution_) do ev
+#     ratio = 2.0 ^ ev.octave
+#     round(Int, ev.esigma * opt.derivative_factor/ratio)
+#     # ev.esigma * opt.derivative_factor/ratio
+# end
 
-evs = map(0:14) do ee
-    open("/home/user/src/AKAZE.jl/evLflow-$(lpad(ee,4,'0')).ext") do ff
-        datas = read(ff, String)[40:end]
-        data = YAML.load(datas)
-        (sz,) = size(data["data"])
-        reshape(data["data"], round(Int, sqrt(sz)), :)'
-    end
-end
-plot(size=(1500,900), layout=(3,5))
-for q in 1:15
-    a=330 ÷ 2^akaze.evolution_[q].octave
-    o=410 ÷ 2^akaze.evolution_[q].octave
-    aa = evs[q][a:o,a:o]
-    heatmap!(aa, subplot=q, layout=(3,5), ratio=1)
-end
-plot!()
-savefig("akaze-Lflow-square-ori.png")
+# evs = map(0:14) do ee
+#     open("/home/user/src/AKAZE.jl/evLflow-$(lpad(ee,4,'0')).ext") do ff
+#         datas = read(ff, String)[40:end]
+#         data = YAML.load(datas)
+#         (sz,) = size(data["data"])
+#         reshape(data["data"], round(Int, sqrt(sz)), :)'
+#     end
+# end
+# plot(size=(1500,900), layout=(3,5))
+# for q in 1:15
+#     a=330 ÷ 2^akaze.evolution_[q].octave
+#     o=410 ÷ 2^akaze.evolution_[q].octave
+#     aa = evs[q][a:o,a:o]
+#     heatmap!(aa, subplot=q, layout=(3,5), ratio=1)
+# end
+# plot!()
+# savefig("akaze-Lflow-square-ori.png")
 
-plot(size=(1500,900), layout=(3,5))
-for q in 1:15
-    a=330 ÷ 2^akaze.evolution_[q].octave
-    o=410 ÷ 2^akaze.evolution_[q].octave
-    oo = akaze.evolution_[q].Lflow[a:o,a:o]
-    heatmap!(oo, subplot=q, layout=(3,5), ratio=1)
-end
-plot!()
-savefig("akaze-Lflow-square-new.png")
+# plot(size=(1500,900), layout=(3,5))
+# for q in 1:15
+#     a=330 ÷ 2^akaze.evolution_[q].octave
+#     o=410 ÷ 2^akaze.evolution_[q].octave
+#     oo = akaze.evolution_[q].Lflow[a:o,a:o]
+#     heatmap!(oo, subplot=q, layout=(3,5), ratio=1)
+# end
+# plot!()
+# savefig("akaze-Lflow-square-new.png")
