@@ -1,4 +1,4 @@
-using ImageFiltering: Kernel, imfilter
+using ImageFiltering: Kernel, imfilter, kernelfactors, centered
 using ImageView: imshow
 using Images: rawview, channelview
 
@@ -116,6 +116,52 @@ function demo_nld()
         imshow(copy(Lt))
     end
 end
+
+function compute_derivative_kernels(scale)
+
+    ksize = 3 + 2*(scale-1)
+
+    ## The usual Scharr kernel
+    if (scale == 1)
+        # Kernel.scharr()
+        fx, fy = Kernel.scharr()
+        # (fx.*32, fy.*32)
+        (fx, fy)
+    end
+
+    kx = centered(zeros(ksize))
+    ky = centered(zeros(ksize))
+
+    w = 10.0/3.0
+    norm = 1.0/(2.0*scale*(w+2.0))
+
+    # ky[1+0] = norm
+    # ky[1+ksize÷2] = w*norm
+    # ky[1+ksize-1] = norm
+
+    # kx[1+0] = -1
+    # kx[1+ksize÷2] = 0
+    # kx[1+ksize-1] = 1
+    ky[-ksize÷2] = norm
+    ky[0] = w*norm
+    ky[ksize÷2] = norm
+
+    kx[-ksize÷2] = -1
+    kx[0] = 0
+    kx[ksize÷2] = 1
+    # (kernelfactors((ky, kx)), kernelfactors((kx, ky)))
+    (kernelfactors((ky, kx)), kernelfactors((kx, ky)))
+end
+
+# fx, fy = compute_derivative_kernels(1)
+# fx, fy = compute_derivative_kernels(2)
+# fx, fy = compute_derivative_kernels(9)
+
+# using TestImages, ImageView
+# aa = testimage("cameram")
+# imshow(aa)
+# imshow(imfilter(aa, fx))
+# imshow(imfilter(aa, fy))
 
 # demo_diffusivity_functions()
 # demo_k_percentile()

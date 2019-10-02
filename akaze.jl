@@ -179,8 +179,12 @@ function Compute_Multiscale_Derivatives(akaze)
     t1 = time_ns()
 
     for ev in akaze.evolution_
-        # imfilter!(ev.Lx, ev.Lsmooth, fx)
-        # imfilter!(ev.Ly, ev.Lsmooth, fy)
+        ratio = 2.0 ^ ev.octave
+        sigma_size_ = round(Int, ev.esigma * akaze.options_.derivative_factor / ratio)
+        fx, fy = compute_derivative_kernels(sigma_size_)
+
+        imfilter!(ev.Lx, ev.Lsmooth, fx)
+        imfilter!(ev.Ly, ev.Lsmooth, fy)
         imfilter!(ev.Lxx, ev.Lx, fx)
         imfilter!(ev.Lxy, ev.Lx, fy)
         imfilter!(ev.Lyy, ev.Ly, fy)
@@ -200,7 +204,11 @@ function Compute_Determinant_Hessian_Response(akaze)
             @info "Computing detector response. Determinant of Hessian. Evolution time: $ev.etime"
         end
 
-        ev.Ldet .= ev.Lxx .* ev.Lyy - ev.Lxy .^ 2
+        ratio = 2.0 ^ ev.octave
+        sigma_size = round(Int, ev.esigma*akaze.options_.derivative_factor/ratio)
+        sigma_size_quat = sigma_size*sigma_size*sigma_size*sigma_size
+
+        ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2) * sigma_size_quat
     end
 end
 
