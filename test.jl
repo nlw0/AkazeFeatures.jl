@@ -19,9 +19,9 @@ include("nonlinear-diffusion.jl")
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
-# imagename = "images/pirate.png"
+imagename = "images/pirate.png"
 # imagename = "images/cameraman.png"
-imagename = "images/zezao.png"
+# imagename = "images/zezao.png"
 # imagename = "images/polly.png"
 # imagename = "images/polly-small.png"
 
@@ -41,8 +41,9 @@ opt = AKAZEOptions(
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
     diffusivity = CHARBONNIER,
-    dthreshold = 4e-3,
-    # dthreshold = 2e-3,
+    # dthreshold = 16e-3,
+    # dthreshold = 4e-3,
+    dthreshold = 2e-3,
     # dthreshold = 1e-8,
     # dthreshold = 1e-5,
     # dthreshold = 2e-5,
