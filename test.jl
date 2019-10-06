@@ -4,12 +4,7 @@ using FileIO
 using Plots
 pyplot()
 
-include("akaze-config.jl")
-include("akaze-descriptor.jl")
-include("akaze.jl")
-include("fed.jl")
-include("nonlinear-diffusion.jl")
-include("utils.jl")
+using AkazeFeatures
 
 # imagename = "images/dirac.png"
 # imagename = "images/square.png"
@@ -24,8 +19,9 @@ imagename = "images/pirate.png"
 # imagename = "images/polly-small.png"
 
 oriimg = load(imagename)
+# img = rawview(channelview(oriimg)) / 255
 
-img = rawview(channelview(oriimg)) / 255
+img = load_image_as_grayscale(imagename)
 
 img_height, img_width = size(img)
 
@@ -40,9 +36,9 @@ opt = AKAZEOptions(
     # diffusivity = WEICKERT,
     diffusivity = CHARBONNIER,
     # dthreshold = 16e-3,
-    dthreshold = 8e-3,
+    # dthreshold = 8e-3,
     # dthreshold = 4e-3,
-    # dthreshold = 2e-3,
+    dthreshold = 2e-3,
 )
 akaze = AKAZE(opt)
 
@@ -52,14 +48,14 @@ Compute_Main_Orientation.([akaze], kpts)
 println("Extracted $(length(kpts)) points")
 desc = Compute_Descriptors(akaze, kpts)
 
-origpt, origdesc = original_akaze_features(imagename, Int(opt.diffusivity); nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=opt.dthreshold)
+origpt, origdesc = original_akaze_features(imagename, diffusivity=Int(opt.diffusivity), nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=opt.dthreshold)
 println("Original: $(length(origpt)) points")
 
 
 plot(size=(800,800))
-plot!([-0.5, size(img)[2]-0.5], [-0.5,size(img)[1]-0.5], RGB.(oriimg), yflip = false)
+plot!([-0.5, size(img)[2]-0.5], [-0.5,size(img)[1]-0.5], RGB.(oriimg), yflip = true)
 plot_features(origpt, "Blues", :solid);
 plot_features(kpts[1:length(kpts)], "Oranges");
 plot!(xticks = :native, yticks = :native)
-
-print_keypoints(kpts, desc)
+plot!()
+plot!(yflip = false)

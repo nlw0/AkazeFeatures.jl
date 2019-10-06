@@ -15,7 +15,9 @@ export
     CHARBONNIER,
 
     load_image_as_grayscale,
-    dump_keypoints_text
+    original_akaze_features,
+    dump_keypoints_text,
+    plot_features,
 
 include("akaze-config.jl")
 include("akaze-descriptor.jl")

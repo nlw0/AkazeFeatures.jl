@@ -40,10 +40,10 @@ function plot_features(kpts, cmap="Blues", style=:dash)
     scatter!(px,py, color = Colors.colormap(cmap)[50], shape = :o, m=5, label = "", msw=0)
 end
 
-function original_akaze_features(imagename, diffusivity; nsublevels=4, omax=4, dthreshold=0.001)
+function original_akaze_features(imagename; diffusivity=0.001, nsublevels=4, omax=4, dthreshold=0.001)
     dthreshold_str = Printf.@sprintf("%.15f", dthreshold)
 
-    cmd = `/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(opt.diffusivity)) --show_results 0 --dthreshold $dthreshold_str --descriptor 5 --nsublevels $nsublevels --omax $omax`
+    cmd = `/home/user/src/akaze/build/bin/akaze_features $imagename --diffusivity $(Int(diffusivity)) --show_results 0 --dthreshold $dthreshold_str --descriptor 5 --nsublevels $nsublevels --omax $omax`
     display(cmd)
     run(cmd)
 
