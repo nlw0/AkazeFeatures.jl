@@ -6,34 +6,36 @@ function Compute_Descriptors(akaze, kpts)
 
     ## Allocate memory for the matrix with the descriptors
     ## We use the full length binary descriptor -> 486 bits
-    t = if (options_.descriptor_size != 0)
+    t = if (akaze.options_.descriptor_size != 0)
         akaze.options_.descriptor_size
     else
         ## We use the random bit selection length binary descriptor
         (6+36+120)*akaze.options_.descriptor_channels
     end
-    desc_len = ceil(t/8.0)
-    desc = zeros(UInt8, length(kpts), desc_len)
+    desc_len = ceil(Int, t/8.0)
+    desc = zeros(UInt8, desc_len, length(kpts))
 
-    if options_.descriptor == MLDB
+    if akaze.options_.descriptor == MLDB
         Compute_Main_Orientation.([akaze], kpts)
     end
 
-    descriptor_function = if options_.descriptor == MLDB_UPRIGHT
-        if options_.descriptor_size == 0
+    descriptor_function = if akaze.options_.descriptor == MLDB_UPRIGHT
+        if akaze.options_.descriptor_size == 0
             Get_Upright_MLDB_Full_Descriptor
         else
             Get_Upright_MLDB_Descriptor_Subset
         end
-    elseif options_.descriptor == MLDB
-        if options_.descriptor_size == 0
+    elseif akaze.options_.descriptor == MLDB
+        if akaze.options_.descriptor_size == 0
             Get_MLDB_Full_Descriptor
         else
             Get_MLDB_Descriptor_Subset
         end
     end
 
-    desc = descriptor_function.([akaze], kpts)
+    for (n,kp) in enumerate(kpts)
+        descriptor_function(akaze, kp, @view desc[:,n])
+    end
 
     t2 = time_ns()
     akaze.timing_.descriptor = t2 - t1
@@ -112,30 +114,30 @@ function Compute_Main_Orientation(akaze, kpt)
 end
 
 
-# /* ************************************************************************* */
-# void AKAZE::Get_MLDB_Full_Descriptor(const cv::KeyPoint& kpt, unsigned char* desc) const
+################################################################
+function Get_MLDB_Full_Descriptor(akaze, kpt, desc)
 
-# const int max_channels = 3
-# CV_Assert(options_.descriptor_channels <= max_channels)
-# float values[16*max_channels]
-# const double size_mult[3] = 1, 2.0/3.0, 1.0/2.0end
+    max_channels = 3
+    @assert akaze.options_.descriptor_channels <= max_channels
+    values = zeros(16*max_channels)
+    size_mult = [1.0, 2.0/3.0, 1.0/2.0]
 
-# float ratio = (float)(1 << kpt.octave)
-# float scale = (float)fRound(0.5f*kpt.size / ratio)
-# float xf = kpt.pt.x / ratio
-# float yf = kpt.pt.y / ratio
-# float co = cos(kpt.angle)
-# float si = sin(kpt.angle)
-# int pattern_size = options_.descriptor_pattern_size
+    ratio = 1 << kpt.octave
+    scale = round(Int, 0.5 * kpt.size / ratio)
+    xf = kpt.pt.x / ratio
+    yf = kpt.pt.y / ratio
+    co = cos(kpt.angle)
+    si = sin(kpt.angle)
+    pattern_size = akaze.options_.descriptor_pattern_size
 
-# int dpos = 0
-# for(int lvl = 0; lvl < 3; lvl++)
-#     int val_count = (lvl + 2) * (lvl + 2)
-#     int sample_step = static_cast<int>(ceil(pattern_size * size_mult[lvl]))
-#     MLDB_Fill_Values(values, sample_step, kpt.class_id, xf, yf, co, si, scale)
-#     MLDB_Binary_Comparisons(values, desc, val_count, dpos)
-# end
-# end
+    dpos = Ref(0)
+    for lvl in 0:2
+        val_count = (lvl + 2) * (lvl + 2)
+        sample_step = ceil(Int, pattern_size * size_mult[1+lvl])
+        MLDB_Fill_Values(akaze, values, sample_step, kpt.class_id, xf, yf, co, si, scale)
+        MLDB_Binary_Comparisons(akaze, values, desc, val_count, dpos)
+    end
+end
 
 # /* ************************************************************************* */
 # void AKAZE::Get_Upright_MLDB_Full_Descriptor(const cv::KeyPoint& kpt, unsigned char* desc) const
@@ -160,65 +162,66 @@ end
 # end
 # end
 
-# /* ************************************************************************* */
-# void AKAZE::MLDB_Fill_Values(float* values, int sample_step, int level,
-#                              float xf, float yf, float co, float si, float scale) const
+################################################################
+function MLDB_Fill_Values(akaze, values, sample_step::Int, level::Int,
+                          xf::Real, yf::Real, co::Real, si::Real, scale::Real)
 
-# int pattern_size = options_.descriptor_pattern_size
-# int nr_channels = options_.descriptor_channels
-# int valpos = 0
+    pattern_size = akaze.options_.descriptor_pattern_size
+    nr_channels = akaze.options_.descriptor_channels
+    valpos = 0
 
-# for (int i = -pattern_size; i < pattern_size; i += sample_step)
-#     for (int j = -pattern_size; j < pattern_size; j += sample_step)
+    for i in -pattern_size:sample_step:pattern_size-1
+        for j in -pattern_size:sample_step:pattern_size-1
 
-#         float di = 0.0, dx = 0.0, dy = 0.0
-#         int nsamples = 0
+            di = 0.0; dx = 0.0; dy = 0.0
+            nsamples = 0
 
-#         for (int k = i; k < i + sample_step; k++)
-#             for (int l = j; l < j + sample_step; l++)
+            for k in i:i + sample_step - 1
+                for l in j:j + sample_step - 1
 
-#                 float sample_y = yf + (l*co*scale + k*si*scale)
-#                 float sample_x = xf + (-l*si*scale + k*co*scale)
+                    sample_y = yf + (l*co*scale + k*si*scale)
+                    sample_x = xf + (-l*si*scale + k*co*scale)
 
-#                 int y1 = fRound(sample_y)
-#                 int x1 = fRound(sample_x)
+                    y1 = round(Int, sample_y)
+                    x1 = round(Int, sample_x)
 
-#                 float ri = *(evolution_[level].Lt.ptr<float>(y1)+x1)
-#                 di += ri
+                    ri = akaze.evolution_[level].Lt[1+y1,1+x1]
+                    di += ri
 
-#                 if(nr_channels > 1)
-#                     float rx = *(evolution_[level].Lx.ptr<float>(y1)+x1)
-#                     float ry = *(evolution_[level].Ly.ptr<float>(y1)+x1)
-#                     if (nr_channels == 2)
-#                         dx += sqrtf(rx*rx + ry*ry)
-#                     end
-#                 else
-#                     float rry = rx*co + ry*si
-#                     float rrx = -rx*si + ry*co
-#                     dx += rrx
-#                     dy += rry
-#                 end
-#             end
-#             nsamples++
-#         end
-#     end
+                    if nr_channels > 1
+                        rx = akaze.evolution_[level].Lx[1+y1, 1+x1]
+                        ry = akaze.evolution_[level].Ly[1+y1, 1+x1]
+                        if (nr_channels == 2)
+                            dx += sqrt(rx*rx + ry*ry)
+                        else
+                            rry = rx*co + ry*si
+                            rrx = -rx*si + ry*co
+                            dx += rrx
+                            dy += rry
+                        end
+                    end
+                    nsamples+=1
+                end
+            end
 
-#     di /= nsamples
-#     dx /= nsamples
-#     dy /= nsamples
+            di /= nsamples
+            dx /= nsamples
+            dy /= nsamples
 
-#     values[valpos] = di
+            values[1+valpos] = di
 
-#     if (nr_channels > 1)
-#         values[valpos + 1] = dx
+            if (nr_channels > 1)
+                values[1+valpos + 1] = dx
+            end
 
-#         if (nr_channels > 2)
-#             values[valpos + 2] = dy
+            if (nr_channels > 2)
+                values[1+valpos + 2] = dy
+            end
 
-#             valpos += nr_channels
-#         end
-#     end
-# end
+            valpos += nr_channels
+        end
+    end
+end
 
 
 # /* ************************************************************************* */
@@ -279,23 +282,23 @@ end
 #     end
 # end
 
-# /* ************************************************************************* */
-# void AKAZE::MLDB_Binary_Comparisons(float* values, unsigned char* desc,
-#                                     int count, int& dpos) const
+################################################################
+function MLDB_Binary_Comparisons(akaze, values, desc,
+                                 count::Int, dpos::Ref{Int})
 
-# int nr_channels = options_.descriptor_channels
+    nr_channels = akaze.options_.descriptor_channels
 
-# for(int pos = 0; pos < nr_channels; pos++)
-#     for (int i = 0; i < count; i++)
-#         float ival = values[nr_channels * i + pos]
-#         for (int j = i + 1; j < count; j++)
-#             int res = ival > values[nr_channels * j + pos]
-#             desc[dpos >> 3] |= (res << (dpos & 7))
-#             dpos++
-#         end
-#     end
-# end
-# end
+    for pos in 0:nr_channels-1
+        for i in 0:count-1
+            ival = values[1 + nr_channels * i + pos]
+            for j in i + 1:count-1
+                res = ival > values[1 + nr_channels * j + pos]
+                desc[1+dpos[] >> 3] |= (res << (dpos[] & 7))
+                dpos[]+=1
+            end
+        end
+    end
+end
 
 # /* ************************************************************************* */
 # void AKAZE::Get_MLDB_Descriptor_Subset(const cv::KeyPoint& kpt, unsigned char* desc)

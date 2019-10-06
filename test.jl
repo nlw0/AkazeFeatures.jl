@@ -19,7 +19,8 @@ include("nonlinear-diffusion.jl")
 # imagename = "images/concave.png"
 # imagename = "images/wiggly.png"
 # imagename = "images/wiggly-blur.png"
-imagename = "images/pirate.png"
+# imagename = "images/pirate.png"
+imagename = "../vggaffine/boat/img1.pgm"
 # imagename = "images/cameraman.png"
 # imagename = "images/zezao.png"
 # imagename = "images/polly.png"
@@ -41,9 +42,9 @@ opt = AKAZEOptions(
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
     diffusivity = CHARBONNIER,
-    # dthreshold = 16e-3,
+    dthreshold = 16e-3,
     # dthreshold = 4e-3,
-    dthreshold = 2e-3,
+    # dthreshold = 2e-3,
     # dthreshold = 1e-8,
     # dthreshold = 1e-5,
     # dthreshold = 2e-5,
@@ -59,8 +60,8 @@ Create_Nonlinear_Scale_Space(akaze, img)
 kpts = Feature_Detection(akaze)
 Compute_Main_Orientation.([akaze], kpts)
 println("Extracted $(length(kpts)) points")
+desc = Compute_Descriptors(akaze, kpts)
 
-# origpt = original_akaze_features(imagename, Int(opt.diffusivity); nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=0.002)
 origpt = original_akaze_features(imagename, Int(opt.diffusivity); nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=opt.dthreshold)
 println("Original: $(length(origpt)) points")
 
