@@ -60,11 +60,11 @@ end
 ################################################################
 ### AKAZE configuration options structure
 @with_kw mutable struct AKAZEOptions
-    omin::Int32                         ###< Initial octave level (-1 means that the size of the input image is duplicated)
+    omin::Int32                           ###< Initial octave level (-1 means that the size of the input image is duplicated)
     omax::Int32 = 4                       ###< Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
     nsublevels::Int32 = 4                 ###< Default number of sublevels per scale level
-    img_width::Int32                    ###< Width of the input image
-    img_height::Int32                   ###< Height of the input image
+    img_width::Int32                      ###< Width of the input image
+    img_height::Int32                     ###< Height of the input image
     soffset::Float32 = 1.6f0              ###< Base scale offset (sigma units)
     derivative_factor::Float32 = 1.5f0    ###< Factor for the multiscale derivatives
     sderivatives::Float32 = 1f0           ###< Smoothing factor for the derivatives

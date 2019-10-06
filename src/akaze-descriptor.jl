@@ -77,10 +77,6 @@ function Compute_Main_Orientation(akaze, kpt)
         end
     end
 
-    # for u in 1:109
-    #     println("$u $(resX[u]) $(resY[u]) $(Ang[u])")
-    # end
-
     ## Variables for computing the dominant direction
     maxXY = 0.0
     ## Loop slides pi/3 window around feature point

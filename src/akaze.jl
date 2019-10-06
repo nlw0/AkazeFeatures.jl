@@ -1,5 +1,7 @@
-using ImageTransformations: imresize
+using Images: Kernel
 
+using ImageTransformations: imresize
+using ImageFiltering: imfilter!
 
 fy, fx = Kernel.scharr()
 fy .*=32
@@ -31,7 +33,7 @@ mutable struct AKAZE
     function AKAZE(options::AKAZEOptions)
 
         ## Smallest possible octave and allow one scale if the image is small
-        @show octavemax = min(options.omax, 1+mylog2(options.img_width ÷ 80), 1+mylog2(options.img_height ÷ 40))
+        octavemax = min(options.omax, 1+mylog2(options.img_width ÷ 80), 1+mylog2(options.img_height ÷ 40))
 
         evolution =
             map(Iterators.product(0:options.nsublevels-1, 0:octavemax-1)) do (j, i)
@@ -144,7 +146,6 @@ function Create_Nonlinear_Scale_Space(akaze, img)
 
         ## Perform FED n inner steps
         for j = 1:akaze.nsteps_[i-1]
-            # println("i $i j $(akaze.tsteps_[i-1][j])")
             nld_step_scalar(akaze.evolution_[i].Lt, akaze.evolution_[i].Lflow, akaze.tsteps_[i-1][j])
         end
     end
@@ -274,8 +275,6 @@ function Find_Scale_Space_Extrema(akaze)
                 point.pt.x = k - 1
                 point.pt.y = j - 1
 
-                # println("point at $i $j $k $(ev.esigma) $(akaze.options_.derivative_factor) size $(point.size)")
-
                 ## Compare response with the same and lower scale
                 for (pki, otherpoint) in enumerate(kpts_aux)
 
@@ -293,7 +292,6 @@ function Find_Scale_Space_Extrema(akaze)
                             else
                                 is_extremum = false
                             end
-                            # println("$is_repeated $(i-1) $j $k $(point.response) $(otherpoint.response)")
                             break
                         end
                     end

@@ -1,7 +1,4 @@
 using ImageFiltering: Kernel, imfilter, kernelfactors, centered
-using ImageView: imshow
-using Images: rawview, channelview
-
 
 
 function nld_step_scalar(Ld, c, stepsize)
@@ -66,7 +63,7 @@ end
 function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
     hist = zeros(Int32, nbins)
 
-    @show hmax = sqrt(maximum(y -> sum(x -> x^2, y), zip(Lx[:], Ly[:])))
+    hmax = sqrt(maximum(y -> sum(x -> x^2, y), zip(Lx[:], Ly[:])))
 
     for (lx, ly) in zip(Lx[:], Ly[:])
         modg = sqrt(lx^2 + ly^2)
@@ -78,12 +75,12 @@ function compute_k_percentile′(Lx, Ly, perc, nbins = 300)
 
     nthreshold = floor(Int, sum(hist) * perc)
 
-    @show k = findfirst(hx -> hx > nthreshold, cumsum(hist))
+    k = findfirst(hx -> hx > nthreshold, cumsum(hist))
 
     return if k == nothing
         0.03
     else
-        @show (hmax * k) / nbins
+        (hmax * k) / nbins
     end
 end
 
@@ -152,17 +149,3 @@ function compute_derivative_kernels(scale)
     # (kernelfactors((ky, kx)), kernelfactors((kx, ky)))
     (kernelfactors((ky, kx)), kernelfactors((kx, ky)))
 end
-
-# fx, fy = compute_derivative_kernels(1)
-# fx, fy = compute_derivative_kernels(2)
-# fx, fy = compute_derivative_kernels(9)
-
-# using TestImages, ImageView
-# aa = testimage("cameram")
-# imshow(aa)
-# imshow(imfilter(aa, fx))
-# imshow(imfilter(aa, fy))
-
-# demo_diffusivity_functions()
-# demo_k_percentile()
-# demo_nld()
