@@ -27,3 +27,18 @@ function original_akaze_features(imagename, diffusivity; nsublevels=4, omax=4, d
         KeyPoint(pt=Point(x,y), size=size, angle=angle)
     end
 end
+
+function print_keypoints(kpts, desc)
+    @printf("%d\n%d\n", size(desc)...)
+    foreach(kpts, eachcol(desc)) do kp, dd
+        @printf("%f %f %f %f %s\n", kp.pt.x, kp.pt.y, kp.size, kp.angle, join(dd, " "))
+    end
+end
+
+function print_keypoints_for_benchmark(kpts, desc)
+    @printf("%d\n%d\n", size(desc)...)
+    foreach(kpts, eachcol(desc)) do kp, dd
+        sc = 1.0 / (kp.size)^2
+        @printf("%f %f %f 0 %f %s\n", kp.pt.x, kp.pt.y, sc, sc, join(dd, " "))
+    end
+end

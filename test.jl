@@ -11,8 +11,8 @@ include("akaze-config.jl")
 include("akaze-descriptor.jl")
 include("akaze.jl")
 include("fed.jl")
-include("demo.jl")
 include("nonlinear-diffusion.jl")
+include("utils.jl")
 
 # imagename = "images/dirac.png"
 # imagename = "images/square.png"
@@ -93,6 +93,7 @@ plot_features(origpt, "Blues", :solid);
 plot_features(kpts[1:length(kpts)], "Oranges");
 plot!(xticks = :native, yticks = :native)
 
+print_keypoints(kpts, desc)
 
 # evs = map(0:14) do ee
 #     open("/home/user/src/AKAZE.jl/evLdet-$(lpad(ee,4,'0')).ext") do ff
