@@ -1,7 +1,9 @@
 using Images: Gray, channelview, rawview
-
+using Colors
 using FileIO
 import Printf
+
+using Plots
 
 function load_image_as_grayscale(imagename)
     oriimg = load(imagename)
@@ -36,7 +38,7 @@ function plot_features(kpts, cmap="Blues", style=:dash)
     py = [d[6] for d in data]
 
     plot!(cx, cy, l=2, color = Colors.colormap(cmap)[90], label = "", style=style, alpha=0.85)
-    plot!(rx,ry, l=2, color = Colors.colormap(cmap)[75], label = "", alpha=0.85)
+    plot!(rx, ry, l=2, color = Colors.colormap(cmap)[75], label = "", alpha=0.85)
     scatter!(px,py, color = Colors.colormap(cmap)[50], shape = :o, m=5, label = "", msw=0)
 end
 
