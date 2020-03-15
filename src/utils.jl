@@ -8,7 +8,7 @@ using Plots
 function load_image_as_grayscale(imagename)
     oriimg = load(imagename)
     grayimg = Gray.(oriimg)
-    rawview(channelview(oriimg)) / 255
+    rawview(channelview(grayimg)) / 255
 end
 
 function demo_scalespace(akaze)

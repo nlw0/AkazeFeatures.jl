@@ -74,7 +74,7 @@ end
 
 
 mylog2(i::Int, acc = 0) =
-    if i == 1
+    if i <= 1
         acc
     else
         mylog2(i >> 1, acc + 1)
