@@ -34,7 +34,11 @@ function Compute_Descriptors(akaze, kpts)
     end
 
     for (n,kp) in enumerate(kpts)
-        descriptor_function(akaze, kp, @view desc[:,n])
+        try
+            descriptor_function(akaze, kp, @view desc[:,n])
+        catch
+            desc[:,n] .= 0
+        end
     end
 
     t2 = time_ns()

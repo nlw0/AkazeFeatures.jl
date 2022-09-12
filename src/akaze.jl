@@ -197,7 +197,7 @@ end
 
 
 ################################################################
-function Compute_Determinant_Hessian_Response(akaze)
+function Compute_Determinant_Hessian_Response(akaze; k=0.06)
 
     for ev in akaze.evolution_
 
@@ -209,7 +209,7 @@ function Compute_Determinant_Hessian_Response(akaze)
         sigma_size = round(Int, ev.esigma*akaze.options_.derivative_factor/ratio)
         sigma_size_quat = sigma_size*sigma_size*sigma_size*sigma_size
 
-        ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2) * sigma_size_quat
+        ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2 - k * (ev.Lxx + ev.Lyy).^2) * sigma_size_quat
     end
 end
 
