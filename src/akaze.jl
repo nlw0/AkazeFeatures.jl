@@ -422,9 +422,11 @@ function Do_Subpixel_Refinement(akaze, kpts)
         Dxy = 0.25 * (Ldet[j+1,k+1] + Ldet[j-1,k-1] - Ldet[j-1,k+1] - Ldet[j+1,k-1])
 
         ## Solve the linear system
-        A = [Dxx Dxy
-             Dxy Dyy]
-        b = -[Dx, Dy]
+        # A = [Dxx Dxy
+        #      Dxy Dyy]
+        # b = -[Dx, Dy]
+        A = SMatrix{2,2}(Dxx, Dxy, Dxy, Dyy)
+        b = -SVector(Dx, Dy)
 
         dst = A \ b
 

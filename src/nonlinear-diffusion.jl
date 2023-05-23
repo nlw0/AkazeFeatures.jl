@@ -30,8 +30,8 @@ function nld_step_scalar(Ld, c, stepsize, dx, dy) @inbounds begin
         for j in 1:rows-1
             cjk=c[j,k]
             Ldjk = Ld[j,k]
-            dx[j,k+1] = 0.5 * stepsize * (cjk + c[j,k+1]) .* (Ld[j,k+1] - Ldjk)
-            dy[j+1,k] = 0.5 * stepsize * (cjk + c[j+1, k]) .* (Ld[j+1, k] - Ldjk)
+            dx[j,k+1] = 0.5 * stepsize * (cjk + c[j,k+1]) * (Ld[j,k+1] - Ldjk)
+            dy[j+1,k] = 0.5 * stepsize * (cjk + c[j+1, k]) * (Ld[j+1, k] - Ldjk)
         end
     end
     j=rows
@@ -100,26 +100,32 @@ function compute_k_percentile(img, perc; gscale = 1.0, nbins = 300)
 end
 
 function compute_k_percentile′(Lx, Ly, perc, nbins = 300) @inbounds begin
+    rows::Int64 = size(Lx, 1)
+    cols::Int64 = size(Lx, 2)
+
     hist = zeros(Int32, nbins)
 
     hmax = 0.0
 
-    for i in 1:length(Lx)
-        lx = Lx[i]
-        ly = Ly[i]
-        hmax = max(hmax, lx^2 + ly^2)
+    for k in 1:cols
+        for j in 1:rows
+            lx = Lx[j,k]
+            ly = Ly[j,k]
+            hmax = max(hmax, lx^2 + ly^2)
+        end
     end
     hmax = sqrt(hmax)
     indexscale = nbins / hmax
 
-    for i in 1:length(Lx)
-        lx = Lx[i]
-        ly = Ly[i]
-        modg = sqrt(lx^2 + ly^2)
-        nbin = ceil(Int, modg * indexscale)  # limiting to nbins should not be necessary
-        hist[max(1, nbin)] += if nbin > 0 && modg > 1e-10 1 else 0 end
+    for k in 1:cols
+        for j in 1:rows
+            lx = Lx[j,k]
+            ly = Ly[j,k]
+            modg = sqrt(lx^2 + ly^2)
+            nbin = ceil(Int, modg * indexscale)  # limiting to nbins should not be necessary
+            hist[max(1, nbin)] += if nbin > 0 && modg > 1e-10 1 else 0 end
+        end
     end
-
     nthreshold = floor(Int, sum(hist) * perc)
 
     k = findfirst(hx -> hx > nthreshold, cumsum(hist))

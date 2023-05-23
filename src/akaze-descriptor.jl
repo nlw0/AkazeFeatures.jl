@@ -97,10 +97,7 @@ function Compute_Main_Orientation(akaze::AKAZE, kptref::Ref{KeyPoint}) @inbounds
             ang = Ang[k]
 
             ## Determine whether the point is within the window
-            if (ang1 < ang2 && ang1 < ang && ang < ang2)
-                sumX += resX[k]
-                sumY += resY[k]
-            elseif (ang2 < ang1 && ((ang > 0 && ang < ang2) || (ang > ang1 && ang < 2.0*π)))
+            if (ang1 < ang2 && (ang1 < ang < ang2)) || (ang2 < ang1 && ((0 < ang < ang2) || (ang1 < ang < 2.0*π)))
                 sumX += resX[k]
                 sumY += resY[k]
             end
@@ -132,7 +129,8 @@ function Get_MLDB_Full_Descriptor(akaze::AKAZE, kpt::KeyPoint, desc)
     max_channels = 3
     @assert akaze.options_.descriptor_channels <= max_channels
     values = zeros(16*max_channels)
-    size_mult = [1.0, 2.0/3.0, 1.0/2.0]
+    # size_mult = [1.0, 2.0/3.0, 1.0/2.0]
+    size_mult = SVector(1.0, 2.0/3.0, 1.0/2.0)
 
     ratio = 1 << kpt.octave
     scale = round(Int, 0.5 * kpt.size / ratio)
@@ -296,7 +294,7 @@ end
 # end
 
 ################################################################
-function MLDB_Binary_Comparisons(akaze, values, desc,
+function MLDB_Binary_Comparisons(akaze::AKAZE, values, desc,
                                  count::Int, dpos::Ref{Int})
 
     nr_channels = akaze.options_.descriptor_channels

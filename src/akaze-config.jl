@@ -1,5 +1,5 @@
 using Parameters
-using StaticArrays: SizedMatrix
+using StaticArrays: SizedMatrix, SMatrix, SVector
 
 ################################################################
 ### Lookup table for 2d gaussian (sigma = 2.5) where (1,1) is top left and (7,7) is bottom right
