@@ -16,7 +16,9 @@ function Compute_Descriptors(akaze, kpts)
     desc = zeros(UInt8, desc_len, length(kpts))
 
     if akaze.options_.descriptor == MLDB
-        Compute_Main_Orientation.([akaze], kpts)
+        for i in 1:length(kpts)
+            Compute_Main_Orientation(akaze, Ref(kpts, i))
+        end
     end
 
     descriptor_function = if akaze.options_.descriptor == MLDB_UPRIGHT
@@ -50,7 +52,8 @@ mymin(a,b) = ifelse(a<b,a,b)
 mymax(a,b) = ifelse(a>b,a,b)
 
 ################################################################
-function Compute_Main_Orientation(akaze, kpt)
+function Compute_Main_Orientation(akaze, kptref)
+    kpt = kptref[]
 
     resX = Vector{Float64}(undef, 109)
     resY = Vector{Float64}(undef, 109)
@@ -108,7 +111,16 @@ function Compute_Main_Orientation(akaze, kpt)
         if (sumX*sumX + sumY*sumY > maxXY)
             ## store largest orientation
             maxXY = sumX*sumX + sumY*sumY
-            kpt.angle = mod(atan(sumY, sumX), 2π)
+            newkpt = KeyPoint(
+                kpt.pt,
+                kpt.size,
+                mod(atan(sumY, sumX), 2π),
+                kpt.response,
+                kpt.octave,
+                kpt.class_id
+            )
+            kptref[] = newkpt
+            # kpt.angle = mod(atan(sumY, sumX), 2π)
         end
     end
 end

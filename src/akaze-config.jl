@@ -1,4 +1,5 @@
 using Parameters
+using StaticArrays: SizedMatrix
 
 ################################################################
 ### Lookup table for 2d gaussian (sigma = 2.5) where (1,1) is top left and (7,7) is bottom right
@@ -59,12 +60,12 @@ end
 
 ################################################################
 ### AKAZE configuration options structure
-@with_kw mutable struct AKAZEOptions
+@with_kw struct AKAZEOptions
     omin::Int32                           ###< Initial octave level (-1 means that the size of the input image is duplicated)
     omax::Int32 = 4                       ###< Maximum octave evolution of the image 2^sigma (coarsest scale sigma units)
     nsublevels::Int32 = 4                 ###< Default number of sublevels per scale level
-    img_width::Int32                      ###< Width of the input image
-    img_height::Int32                     ###< Height of the input image
+    img_width::Int64                      ###< Width of the input image
+    img_height::Int64                     ###< Height of the input image
     soffset::Float32 = 1.6f0              ###< Base scale offset (sigma units)
     derivative_factor::Float32 = 1.5f0    ###< Factor for the multiscale derivatives
     sderivatives::Float32 = 1f0           ###< Smoothing factor for the derivatives
@@ -78,7 +79,7 @@ end
     descriptor_channels::Int32 = 3        ###< Number of channels in the descriptor (1, 2, 3)
     descriptor_pattern_size::Int32 = 10   ###< Actual patch size is 2*pattern_size*point.scale
 
-    kcontrast::Float32 = 1f-3             ###< The contrast factor parameter
+    # kcontrast::Float32 = 1f-3             ###< The contrast factor parameter # This is actually a transient variable...
     kcontrast_percentile::Float32 = 7f-1  ###< Percentile level for the contrast factor
     kcontrast_nbins::UInt32 = 300         ###< Number of bins for the contrast factor histogram
 
@@ -90,26 +91,42 @@ end
 
 ################################################################
 ### AKAZE nonlinear diffusion filtering evolution
-@with_kw mutable struct TEvolution{T}
-    Lx::T            ###< First order spatial derivatives
-    Ly::T            ###< First order spatial derivatives
-    Lxx::T  ###< Second order spatial derivatives
-    Lxy::T  ###< Second order spatial derivatives
-    Lyy::T  ###< Second order spatial derivatives
-    Lflow::T                ###< Diffusivity image
-    Lt::T                   ###< Evolution image
-    Lsmooth::T              ###< Smoothed image
-    Lstep::T                ###< Evolution step update
-    Ldet::T                 ###< Detector response
+# @with_kw struct TEvolution{T,R}
+#     Lx::T            ###< First order spatial derivatives
+#     Ly::T            ###< First order spatial derivatives
+#     Lxx::T  ###< Second order spatial derivatives
+#     Lxy::T  ###< Second order spatial derivatives
+#     Lyy::T  ###< Second order spatial derivatives
+#     Lflow::T                ###< Diffusivity image
+#     Lt::T                   ###< Evolution image
+#     Lsmooth::T              ###< Smoothed image
+#     Lstep::T                ###< Evolution step update
+#     Ldet::R                 ###< Detector response
+#     etime::Float32 = 0f0      ###< Evolution time
+#     esigma::Float32 = 0f0     ###< Evolution sigma. For linear diffusion t = sigma^2 / 2
+#     octave::UInt32 = 0x0      ###< Image octave
+#     sublevel::UInt32 = 0x0    ###< Image sublevel in each octave
+#     sigma_size::UInt32 = 0x0  ###< Integer sigma. For computing the feature detector responses
+# end
+@with_kw struct TEvolution
+    Lx::Matrix{Float64}            ###< First order spatial derivatives
+    Ly::Matrix{Float64}            ###< First order spatial derivatives
+    Lxx::Matrix{Float64}  ###< Second order spatial derivatives
+    Lxy::Matrix{Float64}  ###< Second order spatial derivatives
+    Lyy::Matrix{Float64}  ###< Second order spatial derivatives
+    Lflow::Matrix{Float64}                ###< Diffusivity image
+    Lt::Matrix{Float64}                   ###< Evolution image
+    Lsmooth::Matrix{Float64}              ###< Smoothed image
+    Lstep::Matrix{Float64}                ###< Evolution step update
+    Ldet::Matrix{Float64}                 ###< Detector response
     etime::Float32 = 0f0      ###< Evolution time
     esigma::Float32 = 0f0     ###< Evolution sigma. For linear diffusion t = sigma^2 / 2
     octave::UInt32 = 0x0      ###< Image octave
     sublevel::UInt32 = 0x0    ###< Image sublevel in each octave
     sigma_size::UInt32 = 0x0  ###< Integer sigma. For computing the feature detector responses
-
 end
 
-construct_tevolution(; image_width, image_height, esigma, octave, sublevel) =
+construct_tevolution(; image_width::Int64, image_height::Int64, esigma, octave, sublevel) =
     TEvolution(
         Lx = zeros(image_height, image_width),
         Ly = zeros(image_height, image_width),
@@ -120,7 +137,8 @@ construct_tevolution(; image_width, image_height, esigma, octave, sublevel) =
         Lt = zeros(image_height, image_width),
         Lsmooth = zeros(image_height, image_width),
         Lstep = zeros(image_height, image_width),
-        Ldet = zeros(image_height, image_width),
+        # Ldet = zeros(image_height, image_width),
+        Ldet = SizedMatrix{image_height, image_width}(zeros(image_height, image_width)),
         esigma = esigma,
         sigma_size = round(Int, esigma),
         etime = 0.5f0 * (esigma * esigma),

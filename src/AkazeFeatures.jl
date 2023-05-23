@@ -24,6 +24,6 @@ include("akaze-descriptor.jl")
 include("akaze.jl")
 include("fed.jl")
 include("nonlinear-diffusion.jl")
-# include("utils.jl")
+include("utils.jl")
 
 end

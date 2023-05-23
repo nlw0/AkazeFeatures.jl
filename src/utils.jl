@@ -3,7 +3,7 @@ using Colors
 using FileIO
 import Printf
 
-using Plots
+# using Plots
 
 function load_image_as_grayscale(imagename)
     oriimg = load(imagename)
@@ -21,26 +21,26 @@ function demo_scalespace(akaze)
     imshow(load("akazetest.png"))
 end
 
-function plot_features(kpts, cmap="Blues", style=:dash)
-    mycirc = hcat([[cos(t), sin(t)] for t in (2 * π * (0:53) / 53)]...)
+# function plot_features(kpts, cmap="Blues", style=:dash)
+#     mycirc = hcat([[cos(t), sin(t)] for t in (2 * π * (0:53) / 53)]...)
 
-    data = map(kpts) do kp
-        xy = [kp.pt.x; kp.pt.y]
-        xx = xy .+ kp.size * [0 cos(kp.angle); 0 sin(kp.angle)]
-        circ = xy .+ kp.size * mycirc
-        [circ[1,:], circ[2,:], xx[1,:], xx[2,:], xx[1,1:1], xx[2,1:1]]
-    end
-    cx = [d[1] for d in data]
-    cy = [d[2] for d in data]
-    rx = [d[3] for d in data]
-    ry = [d[4] for d in data]
-    px = [d[5] for d in data]
-    py = [d[6] for d in data]
+#     data = map(kpts) do kp
+#         xy = [kp.pt.x; kp.pt.y]
+#         xx = xy .+ kp.size * [0 cos(kp.angle); 0 sin(kp.angle)]
+#         circ = xy .+ kp.size * mycirc
+#         [circ[1,:], circ[2,:], xx[1,:], xx[2,:], xx[1,1:1], xx[2,1:1]]
+#     end
+#     cx = [d[1] for d in data]
+#     cy = [d[2] for d in data]
+#     rx = [d[3] for d in data]
+#     ry = [d[4] for d in data]
+#     px = [d[5] for d in data]
+#     py = [d[6] for d in data]
 
-    plot!(cx, cy, l=2, color = Colors.colormap(cmap)[90], label = "", style=style, alpha=0.85)
-    plot!(rx, ry, l=2, color = Colors.colormap(cmap)[75], label = "", alpha=0.85)
-    scatter!(px,py, color = Colors.colormap(cmap)[50], shape = :o, m=5, label = "", msw=0)
-end
+#     plot!(cx, cy, l=2, color = Colors.colormap(cmap)[90], label = "", style=style, alpha=0.85)
+#     plot!(rx, ry, l=2, color = Colors.colormap(cmap)[75], label = "", alpha=0.85)
+#     scatter!(px,py, color = Colors.colormap(cmap)[50], shape = :o, m=5, label = "", msw=0)
+# end
 
 function original_akaze_features(imagename; diffusivity=0.001, nsublevels=4, omax=4, dthreshold=0.001)
     dthreshold_str = Printf.@sprintf("%.15f", dthreshold)

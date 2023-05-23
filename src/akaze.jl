@@ -11,21 +11,21 @@ fx .*=32
 # fy, fx = Kernel.ando5()
 
 ################################################################
-mutable struct AKAZE
+struct AKAZE
 
     options_::AKAZEOptions                      ###< Configuration options for AKAZE
-    evolution_::Array{TEvolution}               ###< Vector of nonlinear diffusion evolution
+    evolution_::Vector{TEvolution}              ###< Vector of nonlinear diffusion evolution
 
     ### FED parameters
     ncycles_::Int32                             ###< Number of cycles
     reordering_::Bool                           ###< Flag for reordering time steps
-    tsteps_::Array{Array{Float32}}              ###< Vector of FED dynamic time steps
-    nsteps_::Array{Int32}                       ###< Vector of number of steps per cycle
+    tsteps_::Vector{Vector{Float32}}            ###< Vector of FED dynamic time steps
+    nsteps_::Vector{Int32}                      ###< Vector of number of steps per cycle
 
-    ### Matrices for the M-LDB descriptor computation
-    descriptorSamples_
-    descriptorBits_
-    bitMask_
+    # ### Matrices for the M-LDB descriptor computation
+    # descriptorSamples_
+    # descriptorBits_
+    # bitMask_
 
     ### Computation times variables in ms
     timing_::AKAZETiming
@@ -44,7 +44,7 @@ mutable struct AKAZE
                     octave = i,
                     sublevel = j,
                 )
-            end
+            end[:]
 
         ncycles = length(evolution) - 1
         reordering = true
@@ -64,9 +64,9 @@ mutable struct AKAZE
             reordering,
             tsteps,
             nsteps,
-            0,
-            0,
-            0,
+            # 0,
+            # 0,
+            # 0,
             AKAZETiming(0, 0, 0, 0, 0, 0, 0),
         )
     end
@@ -80,22 +80,21 @@ mylog2(i::Int, acc = 0) =
         mylog2(i >> 1, acc + 1)
     end
 
-@with_kw mutable struct Point
-    x
-    y
+@with_kw struct Point
+    x::Float64
+    y::Float64
 end
 
-@with_kw mutable struct KeyPoint
+@with_kw struct KeyPoint
     pt::Point
     size::Float64
-    angle::Float64 = -1.0
+    angle::Float64 = 0.0
     response::Float64 = 0.0
     octave::Int64 = 0
     class_id::Int64 = -1
 end
 
-
-KeyPoint(a, b) = KeyPoint(a, b, -1.0, 0.0, 0, -1)
+KeyPoint(pt, size) = KeyPoint(pt, size, 0.0, 0.0, 0, -1)
 
 ################################################################
 function Create_Nonlinear_Scale_Space(akaze, img)
@@ -111,7 +110,8 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     imfilter!(akaze.evolution_[1].Ly, akaze.evolution_[1].Ly, AkazeGauss(akaze.options_.soffset))
 
     ## First compute the kcontrast factor
-    akaze.options_.kcontrast = compute_k_percentile(
+    # akaze.options_.kcontrast =
+    mykcontrast = compute_k_percentile(
         img,
         akaze.options_.kcontrast_percentile,
         gscale = 1.0,
@@ -125,7 +125,8 @@ function Create_Nonlinear_Scale_Space(akaze, img)
     for i = 2:length(akaze.evolution_)
         if akaze.evolution_[i].octave > akaze.evolution_[i-1].octave
             akaze.evolution_[i].Lt .= halfsample_image(akaze.evolution_[i-1].Lt)
-            akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
+            # akaze.options_.kcontrast = akaze.options_.kcontrast * 0.75
+            mykcontrast = mykcontrast * 0.75
         else
             akaze.evolution_[i].Lt .= akaze.evolution_[i-1].Lt
         end
@@ -141,7 +142,8 @@ function Create_Nonlinear_Scale_Space(akaze, img)
         akaze.evolution_[i].Lflow .= calculate_diffusivity(
             akaze.evolution_[i].Lx,
             akaze.evolution_[i].Ly,
-            akaze.options_.kcontrast,
+            # akaze.options_.kcontrast,
+            mykcontrast,
         )
 
         ## Perform FED n inner steps
@@ -215,8 +217,7 @@ end
 
 
 ################################################################
-function Find_Scale_Space_Extrema(akaze)
-
+function Find_Scale_Space_Extrema(akaze::AKAZE) @inbounds begin
     value = 0.0
     dist = 0.0
     ratio = 0.0
@@ -245,82 +246,116 @@ function Find_Scale_Space_Extrema(akaze)
 
     t1 = time_ns()
 
-    for (i, ev) in enumerate(akaze.evolution_)
-        rows, cols = size(ev.Ldet)
+    mydthreshold = akaze.options_.dthreshold
+    mymin_dthreshold = akaze.options_.min_dthreshold
 
-        for (k, j) in Iterators.product(2:cols-1, 2:rows-1)
+    for i in 1:length(akaze.evolution_)
+        ev = akaze.evolution_[i]
+        myscale = ev.esigma * akaze.options_.derivative_factor
+        ev_Ldet = ev.Ldet
+        rows::Int64 = size(ev_Ldet,1)
+        cols::Int64 = size(ev_Ldet,2)
 
-            is_extremum = false
-            is_repeated = false
-            is_out = false
-            value = ev.Ldet[j, k]
+        # for k in 2:cols-1, j in 2:rows-1
+        for k in 2:cols-1
+            for j in 2:rows-1
 
-            ## Filter the points with the detector threshold
-            if value > akaze.options_.dthreshold &&
-                value >= akaze.options_.min_dthreshold &&
-                value >= ev.Ldet[j, k-1] &&
-                value > ev.Ldet[j, k+1] &&
-                value >= ev.Ldet[j-1, k-1] &&
-                value >= ev.Ldet[j-1, k] &&
-                value >= ev.Ldet[j-1, k+1] &&
-                value > ev.Ldet[j+1, k-1] && value > ev.Ldet[j+1, k] && value > ev.Ldet[j+1, k+1]
+                is_extremum = false
+                is_repeated = false
+                is_out = false
+                value = ev_Ldet[j, k]
 
-                is_extremum = true
-                point.response = abs(value)
-                point.size = ev.esigma * akaze.options_.derivative_factor
-                point.octave = ev.octave
-                point.class_id = i
-                ratio = 2.0^point.octave
-                sigma_size_ = round(Int64, point.size / ratio)
-                point.pt.x = k - 1
-                point.pt.y = j - 1
+                ## Filter the points with the detector threshold
+                # mypredicate = value > akaze.options_.dthreshold &&
+                    # value >= akaze.options_.min_dthreshold &&
+                mypredicate = value > mydthreshold &&
+                    value >= mymin_dthreshold &&
+                    value >= ev_Ldet[j, k-1] &&
+                    value > ev_Ldet[j, k+1] &&
+                    value >= ev_Ldet[j-1, k-1] &&
+                    value >= ev_Ldet[j-1, k] &&
+                    value >= ev_Ldet[j-1, k+1] &&
+                    value > ev_Ldet[j+1, k-1] && value > ev_Ldet[j+1, k] && value > ev_Ldet[j+1, k+1]
+                if mypredicate
 
-                ## Compare response with the same and lower scale
-                for (pki, otherpoint) in enumerate(kpts_aux)
+                    is_extremum = true
+                    # point.pt.x = k - 1
+                    # point.pt.y = j - 1
+                    # point.size = ev.esigma * akaze.options_.derivative_factor
+                    # point.response = abs(value)
+                    # point.octave = ev.octave
+                    # point.class_id = i
+                    point = KeyPoint(
+                        Point(k - 1, j - 1),
+                        myscale,
+                        0.0,
+                        abs(value),
+                        ev.octave,
+                        i
+                    )
 
-                    if point.class_id - 1 == otherpoint.class_id || point.class_id == otherpoint.class_id
+                    ratio = 2.0^point.octave
+                    sigma_size_ = round(Int64, point.size / ratio)
 
-                        dist = ((point.pt.x * ratio - otherpoint.pt.x) *
+                    ## Compare response with the same and lower scale
+                    for (pki, otherpoint) in enumerate(kpts_aux)
+
+                        if point.class_id - 1 == otherpoint.class_id || point.class_id == otherpoint.class_id
+
+                            dist = ((point.pt.x * ratio - otherpoint.pt.x) *
                                 (point.pt.x * ratio - otherpoint.pt.x) +
                                 (point.pt.y * ratio - otherpoint.pt.y) *
                                 (point.pt.y * ratio - otherpoint.pt.y))
 
-                        if dist <= point.size * point.size
-                            if point.response > otherpoint.response
-                                id_repeated = pki
-                                is_repeated = true
-                            else
-                                is_extremum = false
+                            if dist <= point.size * point.size
+                                if point.response > otherpoint.response
+                                    id_repeated = pki
+                                    is_repeated = true
+                                else
+                                    is_extremum = false
+                                end
+                                break
                             end
-                            break
                         end
                     end
+
+                    ## Check out of bounds
+                    if is_extremum
+                        ## Check that the point is under the image limits for the descriptor computation
+                        left_x = round(Int64, point.pt.x - smax * sigma_size_) - 1
+                        right_x = round(Int64, point.pt.x + smax * sigma_size_) + 1
+                        up_y = round(Int64, point.pt.y - smax * sigma_size_) - 1
+                        down_y = round(Int64, point.pt.y + smax * sigma_size_) + 1
+
+                        if left_x < 0 || right_x >= cols || up_y < 0 || down_y >= rows
+                            is_out = true
+                        end
+
+                        if is_out == false
+                            # point.pt.x = point.pt.x * ratio + 0.5*(ratio-1.0)
+                            # point.pt.y = point.pt.y * ratio + 0.5*(ratio-1.0)
+                            point = KeyPoint(
+                                pt=Point(
+                                    x=point.pt.x * ratio + 0.5*(ratio-1.0),
+                                    y=point.pt.y * ratio + 0.5*(ratio-1.0)
+                                ),
+                                size=point.size,
+                                angle=point.angle,
+                                response=point.response,
+                                octave=point.octave,
+                                class_id=point.class_id
+                            )
+                            if is_repeated == false
+                                # push!(kpts_aux, deepcopy(point))
+                                push!(kpts_aux, point)
+                            else
+                                # kpts_aux[id_repeated] = deepcopy(point)
+                                kpts_aux[id_repeated] = point
+                            end
+                        end ## if is_out
+                    end ##if is_extremum
                 end
-
-                ## Check out of bounds
-                if is_extremum
-                    ## Check that the point is under the image limits for the descriptor computation
-                    left_x = round(Int64, point.pt.x - smax * sigma_size_) - 1
-                    right_x = round(Int64, point.pt.x + smax * sigma_size_) + 1
-                    up_y = round(Int64, point.pt.y - smax * sigma_size_) - 1
-                    down_y = round(Int64, point.pt.y + smax * sigma_size_) + 1
-
-                    if left_x < 0 || right_x >= cols || up_y < 0 || down_y >= rows
-                        is_out = true
-                    end
-
-                    if is_out == false
-                        point.pt.x = point.pt.x * ratio + 0.5*(ratio-1.0)
-                        point.pt.y = point.pt.y * ratio + 0.5*(ratio-1.0)
-                        if is_repeated == false
-                            push!(kpts_aux, deepcopy(point))
-                        else
-                            kpts_aux[id_repeated] = deepcopy(point)
-                        end
-                    end ## if is_out
-                end ##if is_extremum
-            end
-        end ## for j, k
+            end end## for j, k
     end ## for i
 
     ## Now filter points with the upper scale level
@@ -334,7 +369,7 @@ function Find_Scale_Space_Extrema(akaze)
             if (point.class_id + 1) == kpts_aux[j].class_id
 
                 dist = ((point.pt.x - kpts_aux[j].pt.x) * (point.pt.x - kpts_aux[j].pt.x) +
-                        (point.pt.y - kpts_aux[j].pt.y) * (point.pt.y - kpts_aux[j].pt.y))
+                    (point.pt.y - kpts_aux[j].pt.y) * (point.pt.y - kpts_aux[j].pt.y))
 
                 if dist <= point.size * point.size && point.response < kpts_aux[j].response
                     is_repeated = true
@@ -344,13 +379,15 @@ function Find_Scale_Space_Extrema(akaze)
         end
 
         if is_repeated == false
-            push!(kpts, deepcopy(point))
+            # push!(kpts, deepcopy(point))
+            push!(kpts, point)
         end
     end
 
     t2 = time_ns()
     akaze.timing_.extrema = t2 - t1
     kpts
+end
 end
 
 
@@ -383,16 +420,25 @@ function Do_Subpixel_Refinement(akaze, kpts)
         dst = A \ b
 
         # if (fabs(dst(0)) <= 1.0 && fabs(dst(1)) <= 1.0) {
-        newkp = KeyPoint(kp)
-        newkp.pt.x = k - 1 + dst[1]
-        newkp.pt.y = j - 1 + dst[2]
-        power = 2 ^ akaze.evolution_[newkp.class_id].octave
-        newkp.pt.x = newkp.pt.x*power + 0.5*(power-1)
-        newkp.pt.y = newkp.pt.y*power + 0.5*(power-1)
-        newkp.angle = 0.0
+        power = 2 ^ akaze.evolution_[kp.class_id].octave
+        newkp = KeyPoint(
+            pt=Point(
+                (k - 1 + dst[1])*power + 0.5*(power-1),
+                (j - 1 + dst[2])*power + 0.5*(power-1)
+            ),
+            size=kp.size * 2.0,
+            response=kp.response,
+            octave=kp.octave,
+            class_id=kp.class_id
+        )
+        # newkp.pt.x = k - 1 + dst[1]
+        # newkp.pt.y = j - 1 + dst[2]
+        # newkp.pt.x = newkp.pt.x*power + 0.5*(power-1)
+        # newkp.pt.y = newkp.pt.y*power + 0.5*(power-1)
+        # newkp.angle = 0.0
+        ## In OpenCV the size of a keypoint is the diameter, not the radius
+        # newkp.size *= 2.0;
 
-        ## In OpenCV the size of a keypoint its the diameter
-        newkp.size *= 2.0;
         push!(newkpts, newkp)
         ## Delete the point since its not stable
         # else {
