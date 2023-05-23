@@ -148,7 +148,13 @@ function Create_Nonlinear_Scale_Space(akaze, img)
 
         ## Perform FED n inner steps
         for j = 1:akaze.nsteps_[i-1]
-            nld_step_scalar(akaze.evolution_[i].Lt, akaze.evolution_[i].Lflow, akaze.tsteps_[i-1][j])
+            nld_step_scalar(
+                akaze.evolution_[i].Lt,
+                akaze.evolution_[i].Lflow,
+                akaze.tsteps_[i-1][j],
+                akaze.evolution_[i].dx,
+                akaze.evolution_[i].dy,
+            )
         end
     end
 
@@ -161,7 +167,7 @@ halfsample_image(img) = imresize(img, size(img) .÷ 2)
 
 
 ################################################################
-function Feature_Detection(akaze) #::kpts
+function Feature_Detection(akaze::AKAZE) #::kpts
 
     t1 = time_ns()
 
@@ -177,7 +183,7 @@ end
 
 
 ################################################################
-function Compute_Multiscale_Derivatives(akaze)
+function Compute_Multiscale_Derivatives(akaze::AKAZE)
 
     t1 = time_ns()
 
@@ -199,7 +205,7 @@ end
 
 
 ################################################################
-function Compute_Determinant_Hessian_Response(akaze; k=0.06)
+function Compute_Determinant_Hessian_Response(akaze::AKAZE; k=0.06)
 
     for ev in akaze.evolution_
 
@@ -211,7 +217,10 @@ function Compute_Determinant_Hessian_Response(akaze; k=0.06)
         sigma_size = round(Int, ev.esigma*akaze.options_.derivative_factor/ratio)
         sigma_size_quat = sigma_size*sigma_size*sigma_size*sigma_size
 
-        ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2 - k * (ev.Lxx + ev.Lyy).^2) * sigma_size_quat
+        # ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2 - k * (ev.Lxx + ev.Lyy).^2) * sigma_size_quat
+        for x in eachindex(ev.Ldet)
+            @inbounds ev.Ldet[x] = (ev.Lxx[x] * ev.Lyy[x] - ev.Lxy[x] ^ 2 - k * (ev.Lxx[x] + ev.Lyy[x]).^2) * sigma_size_quat
+        end
     end
 end
 

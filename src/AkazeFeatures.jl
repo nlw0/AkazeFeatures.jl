@@ -20,8 +20,8 @@ export
     plot_features
 
 include("akaze-config.jl")
-include("akaze-descriptor.jl")
 include("akaze.jl")
+include("akaze-descriptor.jl")
 include("fed.jl")
 include("nonlinear-diffusion.jl")
 include("utils.jl")

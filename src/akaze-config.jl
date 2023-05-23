@@ -3,7 +3,7 @@ using StaticArrays: SizedMatrix
 
 ################################################################
 ### Lookup table for 2d gaussian (sigma = 2.5) where (1,1) is top left and (7,7) is bottom right
-gauss25 = [
+const gauss25 = [
     0.02546481f0 0.02350698f0 0.01849125f0 0.01239505f0 0.00708017f0 0.00344629f0 0.00142946f0
     0.02350698f0 0.02169968f0 0.01706957f0 0.01144208f0 0.00653582f0 0.00318132f0 0.00131956f0
     0.01849125f0 0.01706957f0 0.01342740f0 0.00900066f0 0.00514126f0 0.00250252f0 0.00103800f0
@@ -119,6 +119,8 @@ end
     Lsmooth::Matrix{Float64}              ###< Smoothed image
     Lstep::Matrix{Float64}                ###< Evolution step update
     Ldet::Matrix{Float64}                 ###< Detector response
+    dx::Matrix{Float64}                 ###< used in nld_step_scalar
+    dy::Matrix{Float64}                 ###< used in nld_step_scalar
     etime::Float32 = 0f0      ###< Evolution time
     esigma::Float32 = 0f0     ###< Evolution sigma. For linear diffusion t = sigma^2 / 2
     octave::UInt32 = 0x0      ###< Image octave
@@ -137,8 +139,9 @@ construct_tevolution(; image_width::Int64, image_height::Int64, esigma, octave, 
         Lt = zeros(image_height, image_width),
         Lsmooth = zeros(image_height, image_width),
         Lstep = zeros(image_height, image_width),
-        # Ldet = zeros(image_height, image_width),
-        Ldet = SizedMatrix{image_height, image_width}(zeros(image_height, image_width)),
+        Ldet = zeros(image_height, image_width),
+        dx = zeros(image_height, image_width+2),
+        dy = zeros(image_height+2, image_width),
         esigma = esigma,
         sigma_size = round(Int, esigma),
         etime = 0.5f0 * (esigma * esigma),

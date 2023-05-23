@@ -1,6 +1,6 @@
 ################################################################
 # This method  computes the set of descriptors through the nonlinear scale space
-function Compute_Descriptors(akaze, kpts)
+function Compute_Descriptors(akaze::AKAZE, kpts::Vector{KeyPoint})
 
     t1 = time_ns()
 
@@ -52,7 +52,7 @@ mymin(a,b) = ifelse(a<b,a,b)
 mymax(a,b) = ifelse(a>b,a,b)
 
 ################################################################
-function Compute_Main_Orientation(akaze, kptref)
+function Compute_Main_Orientation(akaze::AKAZE, kptref::Ref{KeyPoint}) @inbounds begin
     kpt = kptref[]
 
     resX = Vector{Float64}(undef, 109)
@@ -75,7 +75,7 @@ function Compute_Main_Orientation(akaze, kptref)
                 iy = mymin(limj, mymax(1, round(Int64, yf + j*s)+1))
                 ix = mymin(limk, mymax(1, round(Int64, xf + i*s)+1))
 
-                gweight = gauss25[abs(i)+1, abs(j)+1]
+                gweight::Float32 = gauss25[abs(i)+1, abs(j)+1]
                 resX[idx] = gweight * akaze.evolution_[level].Lx[iy, ix]
                 resY[idx] = gweight * akaze.evolution_[level].Ly[iy, ix]
                 Ang[idx] = mod(atan(resY[idx], resX[idx]), 2π)
@@ -123,11 +123,11 @@ function Compute_Main_Orientation(akaze, kptref)
             # kpt.angle = mod(atan(sumY, sumX), 2π)
         end
     end
-end
+end end
 
 
 ################################################################
-function Get_MLDB_Full_Descriptor(akaze, kpt, desc)
+function Get_MLDB_Full_Descriptor(akaze::AKAZE, kpt::KeyPoint, desc)
 
     max_channels = 3
     @assert akaze.options_.descriptor_channels <= max_channels
@@ -175,13 +175,14 @@ end
 # end
 
 ################################################################
-function MLDB_Fill_Values(akaze, values, sample_step::Int, level::Int,
+function MLDB_Fill_Values(akaze::AKAZE, values, sample_step::Int, level::Int,
                           xf::Real, yf::Real, co::Real, si::Real, scale::Real)
 
     pattern_size = akaze.options_.descriptor_pattern_size
     nr_channels = akaze.options_.descriptor_channels
     valpos = 0
 
+    ev = akaze.evolution_[level]
     for i in -pattern_size:sample_step:pattern_size-1
         for j in -pattern_size:sample_step:pattern_size-1
 
@@ -197,12 +198,12 @@ function MLDB_Fill_Values(akaze, values, sample_step::Int, level::Int,
                     y1 = round(Int, sample_y)
                     x1 = round(Int, sample_x)
 
-                    ri = akaze.evolution_[level].Lt[1+y1,1+x1]
+                    ri = ev.Lt[1+y1,1+x1]
                     di += ri
 
                     if nr_channels > 1
-                        rx = akaze.evolution_[level].Lx[1+y1, 1+x1]
-                        ry = akaze.evolution_[level].Ly[1+y1, 1+x1]
+                        @inbounds rx = ev.Lx[1+y1, 1+x1]
+                        @inbounds ry = ev.Ly[1+y1, 1+x1]
                         if (nr_channels == 2)
                             dx += sqrt(rx*rx + ry*ry)
                         else
@@ -212,7 +213,7 @@ function MLDB_Fill_Values(akaze, values, sample_step::Int, level::Int,
                             dy += rry
                         end
                     end
-                    nsamples+=1
+                    nsamples += 1
                 end
             end
 
