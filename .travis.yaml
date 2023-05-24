@@ -20,7 +20,7 @@ notifications:
 codecov: true
 
 after_success:
- - julia -e 'cd(Pkg.dir("ChipSort")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())';
+ - julia -e 'cd(Pkg.dir("AkazeFeatures")); Pkg.add("AkazeFeatures"); using Coverage; Codecov.submit(Codecov.process_folder())';
 
 # jobs:
 #   include:
