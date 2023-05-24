@@ -46,9 +46,9 @@ akaze = AKAZE(opt)
 
 Create_Nonlinear_Scale_Space(akaze, img)
 kpts = Feature_Detection(akaze)
-for i in 1:length(kpts)
-    Compute_Main_Orientation(akaze, Ref(kpts,i))
-end
+# for i in 1:length(kpts)
+#     Compute_Main_Orientation(akaze, Ref(kpts,i)) ## actually done within Compute_Descriptors already
+# end
 println("Extracted $(length(kpts)) points")
 desc = Compute_Descriptors(akaze, kpts)
 

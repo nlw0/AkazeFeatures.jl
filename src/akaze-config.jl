@@ -73,6 +73,7 @@ end
 
     dthreshold::Float32 = 3f-5            ###< Detector response threshold to accept point
     min_dthreshold::Float32 = 1f-5        ###< Minimum detector threshold to accept a point
+    harris_coefficient::Float64 = 0.0     ###< In det(H) - k * tr(H)^2, k=0.0 is the original AKAZE. 0.04:0.06 recommended
 
     descriptor::DESCRIPTOR_TYPE = MLDB    ###< Type of descriptor
     descriptor_size::Int32 = 0            ###< Size of the descriptor in bits. 0->Full size

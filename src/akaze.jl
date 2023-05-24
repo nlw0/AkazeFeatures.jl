@@ -205,8 +205,9 @@ end
 
 
 ################################################################
-function Compute_Determinant_Hessian_Response(akaze::AKAZE; k=0.06)
+function Compute_Determinant_Hessian_Response(akaze::AKAZE)
 
+    k = akaze.options_.harris_coefficient
     for ev in akaze.evolution_
 
         if akaze.options_.verbosity
@@ -219,7 +220,7 @@ function Compute_Determinant_Hessian_Response(akaze::AKAZE; k=0.06)
 
         # ev.Ldet .= (ev.Lxx .* ev.Lyy - ev.Lxy .^ 2 - k * (ev.Lxx + ev.Lyy).^2) * sigma_size_quat
         for x in eachindex(ev.Ldet)
-            @inbounds ev.Ldet[x] = (ev.Lxx[x] * ev.Lyy[x] - ev.Lxy[x] ^ 2 - k * (ev.Lxx[x] + ev.Lyy[x]).^2) * sigma_size_quat
+            @inbounds ev.Ldet[x] = (ev.Lxx[x] * ev.Lyy[x] - ev.Lxy[x] ^ 2 - k * (ev.Lxx[x] + ev.Lyy[x]) ^ 2) * sigma_size_quat
         end
     end
 end
