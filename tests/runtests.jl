@@ -31,13 +31,13 @@ rr = hcat(
     end...)
 
 @testset "Pirate image stats" begin
-Nkp = length(refkpts)
-@test size(refdesc) == (61, Nkp)
-@test size(desc) == size(refdesc)
-@test maximum(abs.(rr[1:2,:])) < 6e-4
-@test median(abs.(rr[1:2,:])) < 2.5e-4
-@test maximum(abs.(rr[3,:])) < 130 # largest error is a keypoint right over the pirate's ring, high frequency
-@test count(x->x==0, rr[3,:]) / Nkp < 0.93
+    Nkp = length(refkpts)
+    @test size(refdesc) == (61, Nkp)
+    @test size(desc) == size(refdesc)
+    @test maximum(abs.(rr[1:2,:])) < 6e-4
+    @test median(abs.(rr[1:2,:])) < 2.5e-4
+    @test maximum(abs.(rr[3,:])) < 130 # largest error is a keypoint right over the pirate's ring, high frequency
+    @test count(x->x==0, rr[3,:]) / Nkp < 0.93
 end
 
 ## Produce test data
