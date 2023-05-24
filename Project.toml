@@ -1,3 +1,4 @@
+
 name = "AkazeFeatures"
 uuid = "23406c00-28fe-5193-aec2-b0bcaddf547d"
 authors = ["Nicolau Leal Werneck <nwerneck@gmail.com>"]
@@ -24,4 +25,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [targets]
-test = ["Test"]
+test = ["Test", "JLD2", "Statistics"]
