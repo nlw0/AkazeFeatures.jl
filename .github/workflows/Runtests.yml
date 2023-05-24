@@ -43,5 +43,4 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: 1.8.3
-      - uses: julia-actions/julia-buildpk@latest
       - uses: julia-actions/julia-runtest@latest
