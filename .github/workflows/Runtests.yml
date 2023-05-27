@@ -44,5 +44,5 @@ jobs:
         with:
           version: 1.8.3
       - uses: julia-actions/julia-runtest@latest
-      - uses: codecov/codecov-action@latest
-      
+      - uses: codecov/codecov-action@v3
+    
