@@ -22,7 +22,7 @@ jobs:
 
     strategy:
       matrix:
-        julia-version: ['1.8']
+        julia-version: ['1.8.3', '1.9']
         julia-arch: [x64]
         os: [ubuntu-latest]
         
@@ -42,5 +42,5 @@ jobs:
           echo test, and deploy your project.
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 1.8.3
+          version: ${{ matrix.julia-version }}
       - uses: julia-actions/julia-runtest@latest
