@@ -69,8 +69,8 @@ function Compute_Main_Orientation(akaze::AKAZE, kptref::Ref{KeyPoint}) @inbounds
     idx = 1
     ## Calculate derivatives responses for points within radius of 6*scale
     (limj,limk) = size(akaze.evolution_[level].Lx)
-    for i in -6:6
-        for j in -6:6
+    for i in -5:5
+        for j in -5:5
             if i*i + j*j < 36
                 iy = mymin(limj, mymax(1, round(Int64, yf + j*s)+1))
                 ix = mymin(limk, mymax(1, round(Int64, xf + i*s)+1))
