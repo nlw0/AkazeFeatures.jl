@@ -1,14 +1,16 @@
-using Images: Kernel
+using Images: Kernel, KernelFactors, centered
 
 using ImageTransformations: imresize
-using ImageFiltering: imfilter!
+using ImageFiltering: imfilter!, kernelfactors
 
-fy, fx = Kernel.scharr()
-fy .*=32
-fx .*=32
+using StaticArrays: SVector
 
-# fy, fx = Kernel.ando3()
-# fy, fx = Kernel.ando5()
+## Scharr filter scaled by 32.0
+s32f1 = centered(SVector(3.0, 10.0, 3.0)*2)
+s32f2 = centered(SVector(-1.0, 0.0, 1.0)/2)
+fy = kernelfactors((s32f2, s32f1))
+fx = kernelfactors((s32f1, s32f2))
+
 
 ################################################################
 struct AKAZE
@@ -471,5 +473,5 @@ function AkazeGauss(sigma)
     if ((ksize_x % 2) == 0)
         ksize_x += 1
     end
-    Kernel.gaussian((sigma,sigma), (ksize_x, ksize_x))
+    KernelFactors.gaussian((sigma,sigma), (ksize_x, ksize_x))
 end
