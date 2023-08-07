@@ -2,7 +2,7 @@ using Images
 using FileIO
 using JLD2
 
-using GLMakie
+using GLMakie; using GLMakie: Axis
 # using Plots
 # pyplot()
 
@@ -36,6 +36,8 @@ opt = AKAZEOptions(
     nsublevels=3,
     img_width = img_width,
     img_height = img_height,
+    # descriptor = AkazeFeatures.MLDB,
+    descriptor = AkazeFeatures.MLDB_UPRIGHT,
     # diffusivity = PM_G1,
     # diffusivity = PM_G2,
     # diffusivity = WEICKERT,
@@ -57,7 +59,7 @@ kpts = Feature_Detection(akaze)
 println("Extracted $(length(kpts)) points")
 desc = Compute_Descriptors(akaze, kpts)
 
-origpt, origdesc = AkazeFeatures.original_akaze_features(imagename, diffusivity=Int(opt.diffusivity), nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=opt.dthreshold)
+origpt, origdesc = AkazeFeatures.original_akaze_features(imagename, diffusivity=Int(opt.diffusivity), nsublevels=opt.nsublevels, omax=opt.omax, dthreshold=opt.dthreshold, descriptor=opt.descriptor)
 
 println("Original: $(length(origpt)) points")
 
@@ -78,16 +80,22 @@ scatter!(ax, [x.pt.x for x in kpts], [x.pt.y for x in kpts], markersize=20, colo
 myord = sortperm(kpts, by=x->(x.pt.x,x.pt.y))
 origord = sortperm(origpt, by=x->(x.pt.x,x.pt.y))
 
-measure_error
+kpts[myord][100]
+origpt[origord][100]
 
+desc[:,myord[100]]'
+origdesc[:,origord[100]]'
 
-save("original-akaze-pirate.jld2", Dict("keypoints"=>origpt, "descriptors"=>origdesc, "akazeoptions"=>opt))
+pltimg((desc[:,myord] .!= origdesc[:,origord]))
 
-load("original-akaze-pirate.jld2")
+# desc[:,myord] == origdesc[:,origord]
 
+# measure_error
 
+# save("original-akaze-pirate.jld2", Dict("keypoints"=>origpt, "descriptors"=>origdesc, "akazeoptions"=>opt))
+
+# load("original-akaze-pirate.jld2")
 
 
 origpt
-
 origdesc
